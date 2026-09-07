@@ -38,12 +38,12 @@ export function setAuthToken(token) {
 }
 
 /**
- * Normalizes endpoint URL to remove any .php extension
+ * Normalizes endpoint URL ensuring proper slash prefix
  */
 export function normalizeEndpoint(endpoint) {
   if (!endpoint) return "";
-  // Strip .php extension before query params or at end of string
-  return endpoint.replace(/\.php(\?|$)/, "$1");
+  if (endpoint.startsWith("http")) return endpoint;
+  return endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 }
 
 async function request(endpoint, options = {}) {

@@ -13,19 +13,27 @@ import {
   Eye,
   Percent,
   MapPin,
-  Phone
+  Phone,
+  Layers,
+  Settings2,
+  Trash2
 } from "lucide-react";
 import { partnerService } from "../../services/partnerService";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { DataTable } from "../../components/common/DataTable";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { StatCard } from "../../components/common/StatCard";
 import { Modal } from "../../components/common/Modal";
+import { Input } from "../../components/common/Input";
+import { Select } from "../../components/common/Select";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AdminPartnersPage() {
   const [partners, setPartners] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [masterServices, setMasterServices] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -36,11 +44,57 @@ export function AdminPartnersPage() {
   const pageSize = 8;
   const { showToast } = useNotifications();
 
+  // Modals
+  const [addPartnerOpen, setAddPartnerOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  // Form states
+  const [newPartner, setNewPartner] = useState({
+    category_id: "1",
+    business_name: "",
+    owner_name: "",
+    mobile: "",
+    alternate_mobile: "",
+    email: "",
+    district_id: "1",
+    area_id: "1",
+    pin_code: "799001",
+    address: "",
+    max_discount_percent: "20",
+    opening_hours: "09:00 AM - 09:00 PM",
+    status: "active",
+    agreement_status: "Verified & Signed",
+    description: ""
+  });
+
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+
+  const [newService, setNewService] = useState({
+    category_id: "1",
+    service_name: "",
+    description: "",
+    mrp: "",
+    discount_percent: "20"
+  });
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await partnerService.getAll();
-      setPartners(data);
+      const [partnerData, catData, servicesData, districtData] = await Promise.all([
+        partnerService.getAll(),
+        partnerService.getCategories(),
+        partnerService.getMasterServices(),
+        districtService.getAll()
+      ]);
+      setPartners(partnerData);
+      setCategories(catData);
+      setMasterServices(servicesData);
+      setDistricts(districtData);
+    } catch (err) {
+      showToast("Could not load partners data from server.", "error");
     } finally {
       setLoading(false);
     }
@@ -56,6 +110,115 @@ export function AdminPartnersPage() {
     loadData();
     if (selectedPartner) {
       setSelectedPartner((prev) => ({ ...prev, status, agreementStatus }));
+    }
+  };
+
+  const handleAddPartner = async (e) => {
+    e.preventDefault();
+    if (!newPartner.business_name.trim() || !newPartner.mobile.trim()) {
+      showToast("Business name and Mobile number are required.", "error");
+      return;
+    }
+    setModalLoading(true);
+    try {
+      const formData = new FormData();
+      Object.entries(newPartner).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) formData.append(k, v);
+      });
+      const res = await partnerService.create(formData);
+      showToast(res.message || "Healthcare partner added successfully!", "success");
+      setAddPartnerOpen(false);
+      setNewPartner({
+        category_id: "1",
+        business_name: "",
+        owner_name: "",
+        mobile: "",
+        alternate_mobile: "",
+        email: "",
+        district_id: "1",
+        area_id: "1",
+        pin_code: "799001",
+        address: "",
+        max_discount_percent: "20",
+        opening_hours: "09:00 AM - 09:00 PM",
+        status: "active",
+        agreement_status: "Verified & Signed",
+        description: ""
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message || "Failed to add partner.", "error");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) {
+      showToast("Please enter a category name.", "error");
+      return;
+    }
+    setModalLoading(true);
+    try {
+      const res = await partnerService.addCategory({ name: newCatName, description: newCatDesc });
+      showToast(res.message || "Category created successfully!", "success");
+      setNewCatName("");
+      setNewCatDesc("");
+      const updatedCats = await partnerService.getCategories();
+      setCategories(updatedCats);
+    } catch (err) {
+      showToast(err.message || "Failed to add category.", "error");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    try {
+      const res = await partnerService.deleteCategory(id);
+      showToast(res.message || "Category deleted.", "info");
+      const updatedCats = await partnerService.getCategories();
+      setCategories(updatedCats);
+    } catch (err) {
+      showToast(err.message || "Failed to delete category.", "error");
+    }
+  };
+
+  const handleAddService = async (e) => {
+    e.preventDefault();
+    if (!newService.service_name.trim() || !newService.mrp) {
+      showToast("Service name and MRP are required.", "error");
+      return;
+    }
+    setModalLoading(true);
+    try {
+      const res = await partnerService.addMasterService(newService);
+      showToast(res.message || "Master service created successfully!", "success");
+      setNewService({
+        category_id: "1",
+        service_name: "",
+        description: "",
+        mrp: "",
+        discount_percent: "20"
+      });
+      const updated = await partnerService.getMasterServices();
+      setMasterServices(updated);
+    } catch (err) {
+      showToast(err.message || "Failed to create service.", "error");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleDeleteService = async (id) => {
+    try {
+      const res = await partnerService.deleteMasterService(id);
+      showToast(res.message || "Service deleted.", "info");
+      const updated = await partnerService.getMasterServices();
+      setMasterServices(updated);
+    } catch (err) {
+      showToast(err.message || "Failed to delete service.", "error");
     }
   };
 
@@ -171,9 +334,20 @@ export function AdminPartnersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-navy-900">Healthcare Partner Outlets</h2>
-          <p className="text-xs text-slate-500">126 partner pharmacies, pathology labs, and clinical centers</p>
+          <p className="text-xs text-slate-500">
+            Real-time API endpoints: /api/admin/partners/list.php, categories.php, services_master.php, add.php, edit.php
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setCategoryModalOpen(true)} icon={Layers}>
+            Categories ({categories.length})
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setServicesModalOpen(true)} icon={Settings2}>
+            Master Services ({masterServices.length})
+          </Button>
+          <Button size="sm" onClick={() => setAddPartnerOpen(true)} icon={Plus}>
+            + Add Outlet
+          </Button>
           <div className="bg-slate-200 p-1 rounded-xl flex items-center">
             <button
               onClick={() => setViewMode("list")}
@@ -197,10 +371,10 @@ export function AdminPartnersPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Total Partners" value="126" subtitle="Across 8 districts" variant="brand" />
-        <StatCard title="Pending Approvals" value="18" subtitle="Requires document review" variant="amber" />
-        <StatCard title="Active Network" value="102" subtitle="Live for cardholders" variant="emerald" />
-        <StatCard title="Inactive / Paused" value="6" subtitle="Suspended outlets" variant="default" />
+        <StatCard title="Total Partners" value={partners.length || "126"} subtitle="Across 8 districts" variant="brand" />
+        <StatCard title="Categories" value={categories.length || "6"} subtitle="Active Healthcare Types" variant="amber" />
+        <StatCard title="Active Network" value={partners.filter((p) => p.status === "Active").length || "102"} subtitle="Live for cardholders" variant="emerald" />
+        <StatCard title="Master Services" value={masterServices.length || "14"} subtitle="Standardized services" variant="default" />
       </div>
 
       {/* Filters Bar */}
@@ -229,10 +403,11 @@ export function AdminPartnersPage() {
             className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="All">All Categories</option>
-            <option value="Pharmacy">Pharmacy</option>
-            <option value="Pathology Lab">Pathology Lab</option>
-            <option value="Nursing Home">Nursing Home</option>
-            <option value="Hospital">Hospital</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
           </select>
 
           <select
@@ -244,7 +419,7 @@ export function AdminPartnersPage() {
             className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="All">All Districts</option>
-            {initialDistricts.map((d) => (
+            {districts.map((d) => (
               <option key={d.id} value={d.name}>
                 {d.name}
               </option>
@@ -318,6 +493,233 @@ export function AdminPartnersPage() {
           })}
         </div>
       )}
+
+      {/* 1. Add Partner Modal */}
+      <Modal
+        isOpen={addPartnerOpen}
+        onClose={() => setAddPartnerOpen(false)}
+        title="Add Healthcare Partner Outlet"
+        subtitle="POST /api/admin/partners/add.php"
+        maxWidth="max-w-2xl"
+      >
+        <form onSubmit={handleAddPartner} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Business / Clinic Name *"
+              placeholder="e.g. Apollo Pharmacy Agartala"
+              value={newPartner.business_name}
+              onChange={(e) => setNewPartner({ ...newPartner, business_name: e.target.value })}
+              required
+            />
+            <Select
+              label="Partner Category *"
+              options={categories.map((c) => ({ label: c.name, value: c.id }))}
+              value={newPartner.category_id}
+              onChange={(e) => setNewPartner({ ...newPartner, category_id: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Owner / Contact Person Name *"
+              placeholder="e.g. Dr. Subhash Debbarma"
+              value={newPartner.owner_name}
+              onChange={(e) => setNewPartner({ ...newPartner, owner_name: e.target.value })}
+              required
+            />
+            <Input
+              label="Primary Mobile Number *"
+              placeholder="e.g. 9876543210"
+              maxLength={10}
+              value={newPartner.mobile}
+              onChange={(e) => setNewPartner({ ...newPartner, mobile: e.target.value.replace(/\D/g, "") })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Select
+              label="District *"
+              options={districts.map((d) => ({ label: d.name, value: d.id }))}
+              value={newPartner.district_id}
+              onChange={(e) => setNewPartner({ ...newPartner, district_id: e.target.value })}
+            />
+            <Input
+              label="PIN Code *"
+              maxLength={6}
+              value={newPartner.pin_code}
+              onChange={(e) => setNewPartner({ ...newPartner, pin_code: e.target.value.replace(/\D/g, "") })}
+            />
+            <Input
+              label="Max Discount (%)"
+              type="number"
+              value={newPartner.max_discount_percent}
+              onChange={(e) => setNewPartner({ ...newPartner, max_discount_percent: e.target.value })}
+            />
+          </div>
+
+          <Input
+            label="Complete Address *"
+            placeholder="e.g. Shop No. 12, Akhaura Road, Agartala"
+            value={newPartner.address}
+            onChange={(e) => setNewPartner({ ...newPartner, address: e.target.value })}
+            required
+          />
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="outline" type="button" onClick={() => setAddPartnerOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={modalLoading}>
+              Save & Register Outlet
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* 2. Manage Categories Modal */}
+      <Modal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        title="Healthcare Partner Categories"
+        subtitle="GET & POST /api/admin/partners/categories.php"
+        maxWidth="max-w-xl"
+      >
+        <div className="space-y-4 text-xs">
+          <form onSubmit={handleAddCategory} className="flex gap-2 items-end bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div className="flex-1 space-y-1">
+              <label className="font-semibold text-slate-700">New Category Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. Dental Clinic"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs"
+                required
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <label className="font-semibold text-slate-700">Description</label>
+              <input
+                type="text"
+                placeholder="e.g. Dental care clinics"
+                value={newCatDesc}
+                onChange={(e) => setNewCatDesc(e.target.value)}
+                className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs"
+              />
+            </div>
+            <Button size="sm" type="submit" loading={modalLoading}>
+              Add
+            </Button>
+          </form>
+
+          <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto border border-slate-200 rounded-xl">
+            {categories.map((c) => (
+              <div key={c.id} className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-navy-900">{c.name}</p>
+                  <p className="text-[11px] text-slate-500">{c.description || "Active category"}</p>
+                </div>
+                <button
+                  onClick={() => handleDeleteCategory(c.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 transition"
+                  title="Delete Category"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setCategoryModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 3. Manage Master Services Modal */}
+      <Modal
+        isOpen={servicesModalOpen}
+        onClose={() => setServicesModalOpen(false)}
+        title="Master Services & Standard Discounts"
+        subtitle="GET & POST /api/admin/partners/services_master.php"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4 text-xs">
+          <form onSubmit={handleAddService} className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 items-end">
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Category *</label>
+              <select
+                value={newService.category_id}
+                onChange={(e) => setNewService({ ...newService, category_id: e.target.value })}
+                className="w-full bg-white border border-slate-200 px-2 py-1.5 rounded-lg text-xs"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="font-semibold text-slate-700">Service Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. HbA1c Blood Test"
+                value={newService.service_name}
+                onChange={(e) => setNewService({ ...newService, service_name: e.target.value })}
+                className="w-full bg-white border border-slate-200 px-2 py-1.5 rounded-lg text-xs"
+                required
+              />
+            </div>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1 w-16">
+                <label className="font-semibold text-slate-700">MRP ₹</label>
+                <input
+                  type="number"
+                  placeholder="500"
+                  value={newService.mrp}
+                  onChange={(e) => setNewService({ ...newService, mrp: e.target.value })}
+                  className="w-full bg-white border border-slate-200 px-2 py-1.5 rounded-lg text-xs"
+                  required
+                />
+              </div>
+              <Button size="sm" type="submit" loading={modalLoading}>
+                Add
+              </Button>
+            </div>
+          </form>
+
+          <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto border border-slate-200 rounded-xl">
+            {masterServices.map((s) => (
+              <div key={s.id} className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-navy-900">{s.service_name}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Category ID: {s.category_id} • MRP: ₹{s.mrp} • Standard Discount: {s.discount_percent}%
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteService(s.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 transition"
+                  title="Delete Service"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setServicesModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Partner Detail & Approval Modal */}
       {selectedPartner && (
