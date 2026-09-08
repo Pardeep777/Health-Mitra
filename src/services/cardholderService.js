@@ -2,10 +2,10 @@ import { api } from "./api";
 
 export const cardholderService = {
   /**
-   * Fetch all cardholders from backend API: GET /admin/cardholders/list.php
+   * Fetch all cardholders from backend API: GET /admin/cardholders/list
    */
   async getAll() {
-    const res = await api.get("/admin/cardholders/list.php");
+    const res = await api.get("/admin/cardholders/list");
     if (res.success && Array.isArray(res.data)) {
       return res.data.map(normalizeCardholder);
     }
@@ -13,11 +13,11 @@ export const cardholderService = {
   },
 
   /**
-   * Filter cardholders by status: GET /admin/cardholders/status.php?type=...
+   * Filter cardholders by status: GET /admin/cardholders/status?type=...
    * Types: active | inactive | expiring_soon | expired | renewals | blocked
    */
   async getByStatus(type = "active") {
-    const res = await api.get("/admin/cardholders/status.php", { type });
+    const res = await api.get("/admin/cardholders/status", { type });
     if (res.success && Array.isArray(res.data)) {
       return res.data.map(normalizeCardholder);
     }
@@ -25,11 +25,11 @@ export const cardholderService = {
   },
 
   /**
-   * Search cardholders by keyword: GET /admin/cardholders/search.php?keyword=...
+   * Search cardholders by keyword: GET /admin/cardholders/search?keyword=...
    */
   async search(keyword = "") {
     if (!keyword.trim()) return this.getAll();
-    const res = await api.get("/admin/cardholders/search.php", { keyword: keyword.trim() });
+    const res = await api.get("/admin/cardholders/search", { keyword: keyword.trim() });
     if (res.success && Array.isArray(res.data)) {
       return res.data.map(normalizeCardholder);
     }
@@ -93,10 +93,10 @@ export const cardholderService = {
   },
 
   /**
-   * Edit cardholder: POST /admin/cardholders/edit.php
+   * Edit cardholder: POST /admin/cardholders/edit
    */
   async update(cardholderData) {
-    const res = await api.post("/admin/cardholders/edit.php", cardholderData);
+    const res = await api.post("/admin/cardholders/edit", cardholderData);
     if (!res.success) {
       throw new Error(res.message || "Failed to update cardholder.");
     }
@@ -108,10 +108,10 @@ export const cardholderService = {
   },
 
   /**
-   * Delete cardholder: POST /admin/cardholders/delete.php
+   * Delete cardholder: POST /admin/cardholders/delete
    */
   async delete(id) {
-    const res = await api.post("/admin/cardholders/delete.php", { id: Number(id) || id });
+    const res = await api.post("/admin/cardholders/delete", { id: Number(id) || id });
     if (!res.success) {
       throw new Error(res.message || "Failed to delete cardholder.");
     }
@@ -119,10 +119,10 @@ export const cardholderService = {
   },
 
   /**
-   * Cards List: GET /admin/cards/list.php?type=all|pending|active|expired
+   * Cards List: GET /admin/cards/list?type=all|pending|active|expired
    */
   async getCardsList(type = "all") {
-    const res = await api.get("/admin/cards/list.php", { type });
+    const res = await api.get("/admin/cards/list", { type });
     if (res.success && Array.isArray(res.data)) {
       return res.data;
     }
@@ -130,18 +130,18 @@ export const cardholderService = {
   },
 
   /**
-   * Get QR data: GET /admin/cards/qr_management.php?card_id=...
+   * Get QR data: GET /admin/cards/qr_management?card_id=...
    */
   async getCardQr(card_id) {
-    const res = await api.get("/admin/cards/qr_management.php", { card_id });
+    const res = await api.get("/admin/cards/qr_management", { card_id });
     return res;
   },
 
   /**
-   * Update Card Status: POST /admin/cards/update_status.php
+   * Update Card Status: POST /admin/cards/update_status
    */
   async updateCardStatus(card_id, status) {
-    const res = await api.post("/admin/cards/update_status.php", {
+    const res = await api.post("/admin/cards/update_status", {
       card_id: Number(card_id) || card_id,
       status
     });
@@ -152,10 +152,10 @@ export const cardholderService = {
   },
 
   /**
-   * Re-generate Token: POST /admin/cards/qr_management.php
+   * Re-generate Token: POST /admin/cards/qr_management
    */
   async regenerateToken(card_id) {
-    const res = await api.post("/admin/cards/qr_management.php", {
+    const res = await api.post("/admin/cards/qr_management", {
       card_id: Number(card_id) || card_id,
       action: "regenerate_token"
     });
@@ -166,10 +166,10 @@ export const cardholderService = {
   },
 
   /**
-   * Verification Logs: GET /admin/cards/verification_logs.php
+   * Verification Logs: GET /admin/cards/verification_logs
    */
   async getVerificationLogs() {
-    const res = await api.get("/admin/cards/verification_logs.php");
+    const res = await api.get("/admin/cards/verification_logs");
     if (res.success && Array.isArray(res.data)) {
       return res.data;
     }

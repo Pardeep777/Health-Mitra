@@ -266,7 +266,7 @@ export function AdminAgentsPage() {
         <div>
           <h2 className="text-xl font-bold text-navy-900">Field Enrolment Agents</h2>
           <p className="text-xs text-slate-500">
-            Real-time API endpoints: /api/admin/agents/list.php, add.php, edit.php, delete.php
+            Real-time API endpoints: /api/admin/agents/list, add, edit, delete, commission, targets
           </p>
         </div>
         <Button size="sm" onClick={() => setAddModalOpen(true)} icon={Plus}>
@@ -325,7 +325,7 @@ export function AdminAgentsPage() {
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title="Add Field Enrolment Agent"
-        subtitle="POST /api/admin/agents/add.php"
+        subtitle="POST /api/admin/agents/add"
         maxWidth="max-w-xl"
       >
         <form onSubmit={handleAddAgent} className="space-y-4 text-xs">
@@ -396,7 +396,7 @@ export function AdminAgentsPage() {
           isOpen={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           title={`Edit Agent: ${agentToEdit.name}`}
-          subtitle="POST /api/admin/agents/edit.php"
+          subtitle="POST /api/admin/agents/edit"
           maxWidth="max-w-xl"
         >
           <form onSubmit={handleEditAgent} className="space-y-4 text-xs">
@@ -467,7 +467,7 @@ export function AdminAgentsPage() {
           isOpen={deleteModalOpen}
           onClose={() => setDeleteModalOpen(false)}
           title="Confirm Delete Agent"
-          subtitle="POST /api/admin/agents/delete.php"
+          subtitle="POST /api/admin/agents/delete"
         >
           <div className="space-y-4 text-xs">
             <p className="text-slate-700">

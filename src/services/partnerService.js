@@ -7,7 +7,7 @@ export const partnerService = {
   // ==========================================
   async getCategories() {
     try {
-      const res = await api.get("/admin/partners/categories.php");
+      const res = await api.get("/admin/partners/categories");
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -18,7 +18,7 @@ export const partnerService = {
   },
 
   async addCategory({ name, description = "" }) {
-    const res = await api.post("/admin/partners/categories.php", {
+    const res = await api.post("/admin/partners/categories", {
       name: name.trim(),
       description: description.trim()
     });
@@ -29,7 +29,7 @@ export const partnerService = {
   },
 
   async editCategory({ id, name, description, status = "active" }) {
-    const res = await api.post("/admin/partners/categories.php", {
+    const res = await api.post("/admin/partners/categories", {
       id: Number(id),
       name: name.trim(),
       description: description?.trim() || "",
@@ -42,7 +42,7 @@ export const partnerService = {
   },
 
   async deleteCategory(id) {
-    const res = await api.post("/admin/partners/categories.php", {
+    const res = await api.post("/admin/partners/categories", {
       action: "delete",
       id: Number(id)
     });
@@ -57,7 +57,7 @@ export const partnerService = {
   // ==========================================
   async getMasterServices() {
     try {
-      const res = await api.get("/admin/partners/services_master.php");
+      const res = await api.get("/admin/partners/services_master");
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -68,7 +68,7 @@ export const partnerService = {
   },
 
   async addMasterService({ category_id, service_name, description = "", mrp, discount_percent = 20, status = "active" }) {
-    const res = await api.post("/admin/partners/services_master.php", {
+    const res = await api.post("/admin/partners/services_master", {
       action: "add",
       category_id: Number(category_id),
       service_name: service_name.trim(),
@@ -84,7 +84,7 @@ export const partnerService = {
   },
 
   async editMasterService({ id, category_id, service_name, description = "", mrp, discount_percent = 20, status = "active" }) {
-    const res = await api.post("/admin/partners/services_master.php", {
+    const res = await api.post("/admin/partners/services_master", {
       action: "edit",
       id: Number(id),
       category_id: Number(category_id),
@@ -101,7 +101,7 @@ export const partnerService = {
   },
 
   async deleteMasterService(id) {
-    const res = await api.post("/admin/partners/services_master.php", {
+    const res = await api.post("/admin/partners/services_master", {
       action: "delete",
       id: Number(id)
     });
@@ -116,7 +116,7 @@ export const partnerService = {
   // ==========================================
   async getAll(params = {}) {
     try {
-      const res = await api.get("/admin/partners/list.php", params);
+      const res = await api.get("/admin/partners/list", params);
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         return res.data.map(normalizePartner);
       }
@@ -130,7 +130,7 @@ export const partnerService = {
   async search(query = "") {
     if (!query.trim()) return this.getAll();
     try {
-      const res = await api.get("/admin/partners/search.php", { q: query.trim() });
+      const res = await api.get("/admin/partners/search", { q: query.trim() });
       if (res.success && Array.isArray(res.data)) {
         return res.data.map(normalizePartner);
       }
@@ -164,7 +164,7 @@ export const partnerService = {
     }
 
     try {
-      const res = await api.postFormData("/admin/partners/add.php", formData);
+      const res = await api.postFormData("/admin/partners/add", formData);
       if (res.success) {
         return { success: true, data: res.data, message: res.message || "Partner added successfully!" };
       }
@@ -202,7 +202,7 @@ export const partnerService = {
     }
 
     try {
-      const res = await api.postFormData("/admin/partners/edit.php", formData);
+      const res = await api.postFormData("/admin/partners/edit", formData);
       if (res.success) {
         return { success: true, message: res.message || "Partner updated successfully!" };
       }

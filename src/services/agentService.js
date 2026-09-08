@@ -3,11 +3,11 @@ import { initialAgents } from "../data/agents";
 
 export const agentService = {
   /**
-   * Get all agents from backend API: GET /admin/agents/list.php or /admin/agents/status.php?tab=all
+   * Get all agents from backend API: GET /admin/agents/list or /admin/agents/status?tab=all
    */
   async getAll(tab = "all") {
     try {
-      const res = await api.get("/admin/agents/list.php");
+      const res = await api.get("/admin/agents/list");
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         return res.data.map(normalizeAgent);
       }
@@ -19,12 +19,12 @@ export const agentService = {
   },
 
   /**
-   * Search agents: GET /admin/agents/search.php?q=...
+   * Search agents: GET /admin/agents/search?q=...
    */
   async search(query = "") {
     if (!query.trim()) return this.getAll();
     try {
-      const res = await api.get("/admin/agents/search.php", { q: query.trim() });
+      const res = await api.get("/admin/agents/search", { q: query.trim() });
       if (res.success && Array.isArray(res.data)) {
         return res.data.map(normalizeAgent);
       }
@@ -47,7 +47,7 @@ export const agentService = {
   },
 
   /**
-   * Add new agent: POST /admin/agents/add.php
+   * Add new agent: POST /admin/agents/add
    */
   async create(agentData) {
     let formData;
@@ -61,7 +61,7 @@ export const agentService = {
     }
 
     try {
-      const res = await api.postFormData("/admin/agents/add.php", formData);
+      const res = await api.postFormData("/admin/agents/add", formData);
       if (res.success) {
         return { success: true, data: res.data, message: res.message || "Agent created successfully!" };
       }
@@ -90,7 +90,7 @@ export const agentService = {
   },
 
   /**
-   * Edit agent: POST /admin/agents/edit.php
+   * Edit agent: POST /admin/agents/edit
    */
   async update(agentData) {
     let formData;
@@ -104,7 +104,7 @@ export const agentService = {
     }
 
     try {
-      const res = await api.postFormData("/admin/agents/edit.php", formData);
+      const res = await api.postFormData("/admin/agents/edit", formData);
       if (res.success) {
         return { success: true, message: res.message || "Agent updated successfully!" };
       }
@@ -116,11 +116,11 @@ export const agentService = {
   },
 
   /**
-   * Delete agent: POST /admin/agents/delete.php
+   * Delete agent: POST /admin/agents/delete
    */
   async delete(id, permanent = 0) {
     try {
-      const res = await api.post("/admin/agents/delete.php", { id, permanent });
+      const res = await api.post("/admin/agents/delete", { id, permanent });
       if (res.success) {
         return { success: true, message: res.message || "Agent deleted successfully!" };
       }
@@ -131,12 +131,12 @@ export const agentService = {
   },
 
   /**
-   * Fetch agent commissions: GET /admin/agents/commission.php
+   * Fetch agent commissions: GET /admin/agents/commission
    * Query params: ?id=...
    */
   async getCommissions(params = {}) {
     try {
-      const res = await api.get("/admin/agents/commission.php", params);
+      const res = await api.get("/admin/agents/commission", params);
       if (res.success && res.data) {
         return res.data;
       }
@@ -147,11 +147,11 @@ export const agentService = {
   },
 
   /**
-   * Clear full pending commission: POST /admin/agents/commission.php
+   * Clear full pending commission: POST /admin/agents/commission
    * Body: { id, payment_mode, transaction_reference, notes }
    */
   async clearPendingCommission({ id, payment_mode = "bank_transfer", transaction_reference = "", notes = "" }) {
-    const res = await api.post("/admin/agents/commission.php", {
+    const res = await api.post("/admin/agents/commission", {
       id: Number(id),
       payment_mode,
       transaction_reference,
@@ -164,11 +164,11 @@ export const agentService = {
   },
 
   /**
-   * Payout for a single card: POST /admin/agents/commission.php
+   * Payout for a single card: POST /admin/agents/commission
    * Body: { id, card_id, payment_mode, transaction_reference }
    */
   async payoutSingleCard({ id, card_id, payment_mode = "upi", transaction_reference = "" }) {
-    const res = await api.post("/admin/agents/commission.php", {
+    const res = await api.post("/admin/agents/commission", {
       id: Number(id),
       card_id,
       payment_mode,
@@ -181,12 +181,12 @@ export const agentService = {
   },
 
   /**
-   * Fetch agent targets: GET /admin/agents/targets.php
+   * Fetch agent targets: GET /admin/agents/targets
    * Query params: ?id=..., ?status=achieved, ?district_id=...
    */
   async getTargets(params = {}) {
     try {
-      const res = await api.get("/admin/agents/targets.php", params);
+      const res = await api.get("/admin/agents/targets", params);
       if (res.success && res.data) {
         return res.data;
       }
@@ -197,11 +197,11 @@ export const agentService = {
   },
 
   /**
-   * Update daily target for agent: POST /admin/agents/targets.php
+   * Update daily target for agent: POST /admin/agents/targets
    * Body: { id, target_daily }
    */
   async updateTarget({ id, target_daily }) {
-    const res = await api.post("/admin/agents/targets.php", {
+    const res = await api.post("/admin/agents/targets", {
       id: Number(id),
       target_daily: Number(target_daily)
     });

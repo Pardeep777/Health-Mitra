@@ -67,10 +67,10 @@ export const authService = {
       throw new Error("Please enter your password.");
     }
 
-    // Call live backend API: /admin/login.php
+    // Call live backend API: /admin/login
     if (cleanEmail.includes("@") && cleanPass) {
       try {
-        const res = await api.post("/admin/login.php", {
+        const res = await api.post("/admin/login", {
           email: cleanEmail,
           password: cleanPass
         });

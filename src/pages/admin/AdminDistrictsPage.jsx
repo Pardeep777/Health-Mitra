@@ -267,7 +267,7 @@ export function AdminDistrictsPage() {
         <div>
           <h2 className="text-xl font-bold text-navy-900">District & Area Management</h2>
           <p className="text-xs text-slate-500">
-            Real-time API endpoints: /api/admin/districts/list.php, add.php, edit.php, delete.php
+            Real-time API endpoints: /api/admin/districts/list, add, edit, delete, rollout
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ export function AdminDistrictsPage() {
         isOpen={addDistrictOpen}
         onClose={() => setAddDistrictOpen(false)}
         title="Add New District"
-        subtitle="POST /api/admin/districts/add.php (type: 'district')"
+        subtitle="POST /api/admin/districts/add (type: 'district')"
       >
         <form onSubmit={handleAddDistrict} className="space-y-4">
           <Input
@@ -333,7 +333,7 @@ export function AdminDistrictsPage() {
         isOpen={addAreaOpen}
         onClose={() => setAddAreaOpen(false)}
         title="Add Area / Block to District"
-        subtitle="POST /api/admin/districts/add.php (type: 'area')"
+        subtitle="POST /api/admin/districts/add (type: 'area')"
       >
         <form onSubmit={handleAddArea} className="space-y-4">
           <Select
@@ -374,7 +374,7 @@ export function AdminDistrictsPage() {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title={`Edit ${editItem.type === "district" ? "District" : "Area"}: ${editItem.name}`}
-        subtitle="POST /api/admin/districts/edit.php"
+        subtitle="POST /api/admin/districts/edit"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <Input
@@ -417,7 +417,7 @@ export function AdminDistrictsPage() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Confirm Deletion"
-        subtitle="POST /api/admin/districts/delete.php"
+        subtitle="POST /api/admin/districts/delete"
       >
         <div className="space-y-4">
           <p className="text-xs text-slate-700">

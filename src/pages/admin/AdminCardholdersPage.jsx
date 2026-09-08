@@ -483,12 +483,12 @@ export function AdminCardholdersPage() {
         onPageChange={setCurrentPage}
       />
 
-      {/* 1. Add Cardholder Modal (POST /admin/cardholders/add.php) */}
+      {/* 1. Add Cardholder Modal (POST /admin/cardholders/add) */}
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title="Register New Cardholder (Admin Enrollment)"
-        subtitle="POST /api/admin/cardholders/add.php • Enrolls member with full KYC"
+        subtitle="POST /api/admin/cardholders/add • Enrolls member with full KYC"
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleCreateCard} className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
@@ -629,13 +629,13 @@ export function AdminCardholdersPage() {
         </form>
       </Modal>
 
-      {/* 2. Edit Cardholder Modal (POST /admin/cardholders/edit.php) */}
+      {/* 2. Edit Cardholder Modal (POST /admin/cardholders/edit) */}
       {editingCard && (
         <Modal
           isOpen={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           title={`Edit Member: ${editingCard.full_name}`}
-          subtitle="POST /api/admin/cardholders/edit.php • Updates member details in real-time"
+          subtitle="POST /api/admin/cardholders/edit • Updates member details in real-time"
           maxWidth="max-w-2xl"
         >
           <form onSubmit={handleUpdateCard} className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
@@ -759,12 +759,12 @@ export function AdminCardholdersPage() {
         </Modal>
       )}
 
-      {/* 3. Delete Confirmation Modal (POST /admin/cardholders/delete.php) */}
+      {/* 3. Delete Confirmation Modal (POST /admin/cardholders/delete) */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Delete Cardholder Record"
-        subtitle="POST /api/admin/cardholders/delete.php"
+        subtitle="POST /api/admin/cardholders/delete"
       >
         <div className="space-y-4">
           <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">

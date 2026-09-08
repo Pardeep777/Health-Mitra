@@ -6,7 +6,7 @@ export const contentService = {
   // ==========================================
   async getPages() {
     try {
-      const res = await api.get("/admin/content/pages.php");
+      const res = await api.get("/admin/content/pages");
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -38,7 +38,7 @@ export const contentService = {
 
   async getPageById(id) {
     try {
-      const res = await api.get("/admin/content/pages.php", { id });
+      const res = await api.get("/admin/content/pages", { id });
       if (res.success && res.data) {
         return res.data;
       }
@@ -60,7 +60,7 @@ export const contentService = {
       status
     };
     try {
-      const res = await api.post("/admin/content/pages.php", payload);
+      const res = await api.post("/admin/content/pages", payload);
       if (res.success) {
         return { success: true, message: res.message || "Page created successfully!" };
       }
@@ -85,7 +85,7 @@ export const contentService = {
       status
     };
     try {
-      const res = await api.post("/admin/content/pages.php", payload);
+      const res = await api.post("/admin/content/pages", payload);
       if (res.success) {
         return { success: true, message: res.message || "Page updated successfully!" };
       }
@@ -103,7 +103,7 @@ export const contentService = {
 
   async deletePage(id) {
     try {
-      const res = await api.post("/admin/content/pages.php", { action: "delete", id: Number(id) });
+      const res = await api.post("/admin/content/pages", { action: "delete", id: Number(id) });
       if (res.success) {
         return { success: true, message: res.message || "Page deleted successfully!" };
       }
@@ -121,7 +121,7 @@ export const contentService = {
   // ==========================================
   async getFaqs() {
     try {
-      const res = await api.get("/admin/content/faq.php");
+      const res = await api.get("/admin/content/faq");
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -151,7 +151,7 @@ export const contentService = {
 
   async getFaqById(id) {
     try {
-      const res = await api.get("/admin/content/faq.php", { id });
+      const res = await api.get("/admin/content/faq", { id });
       if (res.success && res.data) {
         return res.data;
       }
@@ -172,7 +172,7 @@ export const contentService = {
       status
     };
     try {
-      const res = await api.post("/admin/content/faq.php", payload);
+      const res = await api.post("/admin/content/faq", payload);
       if (res.success) {
         return { success: true, message: res.message || "FAQ added successfully!" };
       }
@@ -196,7 +196,7 @@ export const contentService = {
       status
     };
     try {
-      const res = await api.post("/admin/content/faq.php", payload);
+      const res = await api.post("/admin/content/faq", payload);
       if (res.success) {
         return { success: true, message: res.message || "FAQ updated successfully!" };
       }
@@ -214,7 +214,7 @@ export const contentService = {
 
   async deleteFaq(id) {
     try {
-      const res = await api.post("/admin/content/faq.php", { action: "delete", id: Number(id) });
+      const res = await api.post("/admin/content/faq", { action: "delete", id: Number(id) });
       if (res.success) {
         return { success: true, message: res.message || "FAQ deleted successfully!" };
       }

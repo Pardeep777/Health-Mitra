@@ -335,7 +335,7 @@ export function AdminPartnersPage() {
         <div>
           <h2 className="text-xl font-bold text-navy-900">Healthcare Partner Outlets</h2>
           <p className="text-xs text-slate-500">
-            Real-time API endpoints: /api/admin/partners/list.php, categories.php, services_master.php, add.php, edit.php
+            Real-time API endpoints: /api/admin/partners/list, categories, services_master, add, edit
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -499,7 +499,7 @@ export function AdminPartnersPage() {
         isOpen={addPartnerOpen}
         onClose={() => setAddPartnerOpen(false)}
         title="Add Healthcare Partner Outlet"
-        subtitle="POST /api/admin/partners/add.php"
+        subtitle="POST /api/admin/partners/add"
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleAddPartner} className="space-y-4 text-xs">
@@ -583,7 +583,7 @@ export function AdminPartnersPage() {
         isOpen={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
         title="Healthcare Partner Categories"
-        subtitle="GET & POST /api/admin/partners/categories.php"
+        subtitle="GET & POST /api/admin/partners/categories"
         maxWidth="max-w-xl"
       >
         <div className="space-y-4 text-xs">
@@ -645,7 +645,7 @@ export function AdminPartnersPage() {
         isOpen={servicesModalOpen}
         onClose={() => setServicesModalOpen(false)}
         title="Master Services & Standard Discounts"
-        subtitle="GET & POST /api/admin/partners/services_master.php"
+        subtitle="GET & POST /api/admin/partners/services_master"
         maxWidth="max-w-2xl"
       >
         <div className="space-y-4 text-xs">

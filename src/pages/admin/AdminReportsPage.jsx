@@ -120,7 +120,7 @@ export function AdminReportsPage() {
         <div>
           <h2 className="text-xl font-bold text-navy-900">Reports & Export Center</h2>
           <p className="text-xs text-slate-500">
-            Real-time backend reports: /api/admin/reports/cardholders.php, cards.php, partners.php, export.php
+            Real-time backend reports: /api/admin/reports/cardholders, cards, partners, export
           </p>
         </div>
       </div>

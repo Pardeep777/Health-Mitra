@@ -2,10 +2,10 @@ import { api } from "./api";
 
 export const districtService = {
   /**
-   * Fetch all districts from backend API: GET /admin/districts/list.php
+   * Fetch all districts from backend API: GET /admin/districts/list
    */
   async getAll() {
-    const res = await api.get("/admin/districts/list.php");
+    const res = await api.get("/admin/districts/list");
     if (res.success && Array.isArray(res.data)) {
       return res.data;
     }
@@ -13,7 +13,7 @@ export const districtService = {
   },
 
   /**
-   * Add a new district: POST /admin/districts/add.php
+   * Add a new district: POST /admin/districts/add
    * Body: { type: "district", name: "West Tripura", state: "Tripura" }
    */
   async addDistrict({ name, state = "Tripura" }) {
@@ -21,7 +21,7 @@ export const districtService = {
       throw new Error("Please enter a valid district name.");
     }
 
-    const res = await api.post("/admin/districts/add.php", {
+    const res = await api.post("/admin/districts/add", {
       type: "district",
       name: name.trim(),
       state: state.trim()
@@ -35,7 +35,7 @@ export const districtService = {
   },
 
   /**
-   * Add an area to a district: POST /admin/districts/add.php
+   * Add an area to a district: POST /admin/districts/add
    * Body: { type: "area", district_id: 1, name: "Banamalipur", pin_code: "799001" }
    */
   async addArea({ district_id, name, pin_code }) {
@@ -46,7 +46,7 @@ export const districtService = {
       throw new Error("Please enter a valid 6-digit PIN code.");
     }
 
-    const res = await api.post("/admin/districts/add.php", {
+    const res = await api.post("/admin/districts/add", {
       type: "area",
       district_id: Number(district_id),
       name: name.trim(),
@@ -61,7 +61,7 @@ export const districtService = {
   },
 
   /**
-   * Edit district or area: POST /admin/districts/edit.php
+   * Edit district or area: POST /admin/districts/edit
    * Body: { type: "district"|"area", id, district_id, name, pin_code, status }
    */
   async edit({ type = "district", id, district_id, name, pin_code, status = "active", state = "Tripura" }) {
@@ -79,7 +79,7 @@ export const districtService = {
       payload.state = state;
     }
 
-    const res = await api.post("/admin/districts/edit.php", payload);
+    const res = await api.post("/admin/districts/edit", payload);
     if (!res.success) {
       throw new Error(res.message || "Failed to update district/area.");
     }
@@ -88,11 +88,11 @@ export const districtService = {
   },
 
   /**
-   * Delete district or area: POST /admin/districts/delete.php
+   * Delete district or area: POST /admin/districts/delete
    * Body: { type: "district"|"area", id }
    */
   async delete({ type = "district", id }) {
-    const res = await api.post("/admin/districts/delete.php", {
+    const res = await api.post("/admin/districts/delete", {
       type,
       id: Number(id)
     });
@@ -105,12 +105,12 @@ export const districtService = {
   },
 
   /**
-   * Get district rollout status: GET /admin/districts/rollout.php
+   * Get district rollout status: GET /admin/districts/rollout
    * Query params: ?phase=phase_1 or ?id=1
    */
   async getRollout(params = {}) {
     try {
-      const res = await api.get("/admin/districts/rollout.php", params);
+      const res = await api.get("/admin/districts/rollout", params);
       if (res.success && res.data) {
         return res.data;
       }
@@ -121,7 +121,7 @@ export const districtService = {
   },
 
   /**
-   * Update district rollout phase and coordinator info: POST /admin/districts/rollout.php
+   * Update district rollout phase and coordinator info: POST /admin/districts/rollout
    * Body: { id, rollout_phase, coordinator_name, coordinator_phone, target_cardholders, headquarters }
    */
   async updateRollout({ id, rollout_phase, coordinator_name, coordinator_phone, target_cardholders, headquarters }) {
@@ -134,7 +134,7 @@ export const districtService = {
       headquarters
     };
 
-    const res = await api.post("/admin/districts/rollout.php", payload);
+    const res = await api.post("/admin/districts/rollout", payload);
     if (!res.success) {
       throw new Error(res.message || "Failed to update district rollout details.");
     }

@@ -2,11 +2,11 @@ import { api, API_BASE_URL, getAuthToken } from "./api";
 
 export const reportService = {
   /**
-   * Get cardholders report data: GET /admin/reports/cardholders.php
+   * Get cardholders report data: GET /admin/reports/cardholders
    */
   async getCardholdersReport(params = {}) {
     try {
-      const res = await api.get("/admin/reports/cardholders.php", params);
+      const res = await api.get("/admin/reports/cardholders", params);
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -17,11 +17,11 @@ export const reportService = {
   },
 
   /**
-   * Get cards report data: GET /admin/reports/cards.php
+   * Get cards report data: GET /admin/reports/cards
    */
   async getCardsReport(params = {}) {
     try {
-      const res = await api.get("/admin/reports/cards.php", params);
+      const res = await api.get("/admin/reports/cards", params);
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -32,11 +32,11 @@ export const reportService = {
   },
 
   /**
-   * Get partners report data: GET /admin/reports/partners.php
+   * Get partners report data: GET /admin/reports/partners
    */
   async getPartnersReport(params = {}) {
     try {
-      const res = await api.get("/admin/reports/partners.php", params);
+      const res = await api.get("/admin/reports/partners", params);
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
@@ -47,7 +47,7 @@ export const reportService = {
   },
 
   /**
-   * Build complete PDF export URL: GET /admin/reports/export.php?type=...&format=pdf
+   * Build complete PDF export URL: GET /admin/reports/export?type=...&format=pdf
    */
   getExportUrl(type = "cardholders", format = "pdf", filters = {}) {
     const token = getAuthToken();
@@ -62,6 +62,6 @@ export const reportService = {
       }
     });
 
-    return `${API_BASE_URL}/admin/reports/export.php?${queryParams.toString()}`;
+    return `${API_BASE_URL}/admin/reports/export?${queryParams.toString()}`;
   }
 };

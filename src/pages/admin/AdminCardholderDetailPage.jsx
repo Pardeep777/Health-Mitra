@@ -75,7 +75,7 @@ export function AdminCardholderDetailPage() {
     }
   };
 
-  // 2. Toggle Status via POST /admin/cards/update_status.php
+  // 2. Toggle Status via POST /admin/cards/update_status
   const handleToggleStatus = async () => {
     if (!cardholder) return;
     const nextStatus = cardholder.status === "Active" ? "Inactive" : "Active";
@@ -92,7 +92,7 @@ export function AdminCardholderDetailPage() {
     }
   };
 
-  // 3. Re-generate QR Token: POST /admin/cards/qr_management.php
+  // 3. Re-generate QR Token: POST /admin/cards/qr_management
   const handleRegenerateToken = async () => {
     if (!cardholder) return;
     setRegenLoading(true);
