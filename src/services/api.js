@@ -87,6 +87,51 @@ async function request(endpoint, options = {}) {
 
     // Check HTTP status code
     if (!response.ok) {
+      // If 404 Not Found and URL doesn't have .php, attempt seamless fallback to .php
+      if (response.status === 404 && !url.includes(".php")) {
+        const phpUrl = url.includes("?") ? url.replace("?", ".php?") : `${url}.php`;
+        try {
+          const phpResponse = await fetch(phpUrl, { ...options, headers });
+          if (phpResponse.ok) {
+            let phpData;
+            const phpContentType = phpResponse.headers.get("content-type");
+            if (phpContentType && phpContentType.includes("application/json")) {
+              phpData = await phpResponse.json();
+            } else {
+              const phpText = await phpResponse.text();
+              try {
+                phpData = JSON.parse(phpText);
+              } catch {
+                phpData = { message: phpText };
+              }
+            }
+            if (
+              phpData &&
+              (phpData.status === false ||
+                phpData.status === 0 ||
+                phpData.status === "error" ||
+                phpData.success === false)
+            ) {
+              return {
+                success: false,
+                status: 400,
+                message: phpData.message || "Operation failed on server.",
+                data: null,
+                error: phpData
+              };
+            }
+            return {
+              success: true,
+              status: phpResponse.status,
+              message: phpData?.message || "Operation successful",
+              data: phpData?.data !== undefined ? phpData.data : phpData
+            };
+          }
+        } catch (fallbackErr) {
+          // Continue with original 404 error
+        }
+      }
+
       const errorMessage =
         data?.message || data?.error || `HTTP ${response.status}: ${response.statusText}`;
       return {
