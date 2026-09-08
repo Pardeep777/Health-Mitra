@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   Clock,
   ArrowRight
 } from "lucide-react";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { partnerService } from "../../services/partnerService";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
@@ -20,6 +20,7 @@ import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 
 export function BecomePartnerPage() {
+  const [districts, setDistricts] = useState([]);
   const [formData, setFormData] = useState({
     businessName: "",
     ownerName: "",
@@ -40,14 +41,27 @@ export function BecomePartnerPage() {
   const [createdPartner, setCreatedPartner] = useState(null);
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const data = await districtService.getAll();
+        setDistricts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setDistricts([]);
+      }
+    }
+    loadDistricts();
+  }, []);
+
   const categories = [
     { label: "Pharmacy / Chemist Outlet", value: "Pharmacy" },
     { label: "Pathology Diagnostic Lab", value: "Pathology Lab" },
-    { label: "Nursing Home / Clinic", value: "Nursing Home" },
-    { label: "Hospital / Critical Care", value: "Hospital" }
+    { label: "Nursing Home / Day Care Clinic", value: "Nursing Home" },
+    { label: "Dental Clinic", value: "Dental Clinic" },
+    { label: "Eye Care / Opticals", value: "Opticals" }
   ];
 
-  const districtOptions = initialDistricts.map((d) => ({
+  const districtOptions = districts.map((d) => ({
     label: d.name,
     value: d.name
   }));

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
   MapPin,
@@ -15,34 +15,56 @@ import {
   ShieldCheck,
   X
 } from "lucide-react";
-import { initialPartners } from "../../data/partners";
-import { initialDistricts } from "../../data/districts";
+import { partnerService } from "../../services/partnerService";
+import { districtService } from "../../services/districtService";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 
 export function FindPartnerPage() {
+  const [partners, setPartners] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedDistrict, setSelectedDistrict] = useState("All");
   const [viewMode, setViewMode] = useState("list"); // list or map
   const [selectedPartner, setSelectedPartner] = useState(null);
 
-  const categories = ["All", "Pharmacy", "Pathology Lab", "Nursing Home", "Hospital"];
+  const categories = ["All", "Pharmacy", "Pathology Lab", "Nursing Home", "Hospital", "Clinic", "Diagnostic"];
+
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [partnerData, districtData] = await Promise.all([
+          partnerService.getAll(),
+          districtService.getAll()
+        ]);
+        setPartners(partnerData);
+        setDistricts(districtData);
+      } catch (e) {
+        console.warn("Failed to load public partner data", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const filteredPartners = useMemo(() => {
-    return initialPartners.filter((p) => {
+    return partners.filter((p) => {
       const matchSearch =
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.services.some((s) => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        (p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (Array.isArray(p.services) && p.services.some((s) => (s.name || s.service_name || "").toLowerCase().includes(searchTerm.toLowerCase())));
 
       const matchCategory = selectedCategory === "All" || p.category === selectedCategory;
       const matchDistrict = selectedDistrict === "All" || p.district === selectedDistrict;
 
       return matchSearch && matchCategory && matchDistrict;
     });
-  }, [searchTerm, selectedCategory, selectedDistrict]);
+  }, [partners, searchTerm, selectedCategory, selectedDistrict]);
 
   return (
     <div className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -55,7 +77,7 @@ export function FindPartnerPage() {
           Find a Partner Healthcare Outlet Near You
         </h1>
         <p className="text-slate-600 text-sm sm:text-base">
-          Present your Health Mitra card at any of our {initialPartners.length}+ partner pharmacies, pathology labs, and nursing homes across Tripura to receive up to 20% discount.
+          Present your Health Mitra card at any of our partner pharmacies, pathology labs, and nursing homes across Tripura to receive verified discounts.
         </p>
       </div>
 

@@ -1,5 +1,4 @@
 import { api } from "./api";
-import { initialPartners } from "../data/partners";
 
 export const partnerService = {
   // ==========================================
@@ -117,14 +116,13 @@ export const partnerService = {
   async getAll(params = {}) {
     try {
       const res = await api.get("/admin/partners/list", params);
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         return res.data.map(normalizePartner);
       }
     } catch (e) {
-      console.warn("API partners fetch failed, using stored/fallback partners", e);
+      console.warn("API partners fetch error", e);
     }
-    const saved = localStorage.getItem("health_mitra_partners");
-    return saved ? JSON.parse(saved) : initialPartners;
+    return [];
   },
 
   async search(query = "") {
@@ -137,14 +135,7 @@ export const partnerService = {
     } catch (e) {
       console.warn("API partners search error", e);
     }
-    const all = await this.getAll();
-    const term = query.toLowerCase();
-    return all.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.owner.toLowerCase().includes(term) ||
-        p.address.toLowerCase().includes(term)
-    );
+    return [];
   },
 
   async getById(id) {
@@ -163,31 +154,11 @@ export const partnerService = {
       });
     }
 
-    try {
-      const res = await api.postFormData("/admin/partners/add", formData);
-      if (res.success) {
-        return { success: true, data: res.data, message: res.message || "Partner added successfully!" };
-      }
-    } catch (e) {
-      console.warn("Partner add API error", e);
+    const res = await api.postFormData("/admin/partners/add", formData);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to add partner.");
     }
-
-    // Local state fallback
-    const all = await this.getAll();
-    const newPartner = {
-      id: `PART-${1000 + all.length + 1}`,
-      status: "Pending",
-      agreementStatus: "Under Review",
-      joinedDate: new Date().toISOString().split("T")[0],
-      totalVerifications: 0,
-      totalDiscountGiven: 0,
-      rating: 5.0,
-      image: "https://images.unsplash.com/photo-1586015554063-8a35d9472e39?w=600&auto=format&fit=crop&q=80",
-      ...(partnerData instanceof FormData ? Object.fromEntries(partnerData) : partnerData)
-    };
-    const updated = [newPartner, ...all];
-    localStorage.setItem("health_mitra_partners", JSON.stringify(updated));
-    return { success: true, data: newPartner, message: "Partner added successfully!" };
+    return { success: true, data: res.data, message: res.message || "Partner added successfully!" };
   },
 
   async update(partnerData) {

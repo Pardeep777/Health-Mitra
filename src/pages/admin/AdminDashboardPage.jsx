@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Users,
@@ -37,7 +37,19 @@ import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 
 export function AdminDashboardPage() {
-  const stats = analyticsService.getAdminStats();
+  const [stats, setStats] = useState(() => analyticsService.getAdminStats());
+
+  useEffect(() => {
+    async function loadLiveStats() {
+      try {
+        const live = await analyticsService.getLiveAdminStats();
+        setStats(live);
+      } catch (e) {
+        console.warn("Failed to load live dashboard stats", e);
+      }
+    }
+    loadLiveStats();
+  }, []);
 
   return (
     <div className="space-y-8">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Briefcase,
   UserCheck,
@@ -9,13 +9,14 @@ import {
   Send,
   Sparkles
 } from "lucide-react";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 
 export function JoinUsPage() {
+  const [districts, setDistricts] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -28,13 +29,25 @@ export function JoinUsPage() {
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
 
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const data = await districtService.getAll();
+        setDistricts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setDistricts([]);
+      }
+    }
+    loadDistricts();
+  }, []);
+
   const roleOptions = [
     { label: "Field Enrollment Agent (Full-time / Part-time)", value: "Field Agent" },
     { label: "District Distributor Point (Wholesale / Logistics)", value: "Distributor" },
     { label: "Partner Relations Executive", value: "Partner Relations" }
   ];
 
-  const districtOptions = initialDistricts.map((d) => ({
+  const districtOptions = districts.map((d) => ({
     label: d.name,
     value: d.name
   }));

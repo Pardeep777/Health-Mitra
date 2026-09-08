@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ShieldCheck,
@@ -21,10 +21,22 @@ import {
 } from "lucide-react";
 import { HeroSlider } from "../../components/home/HeroSlider";
 import { Button } from "../../components/common/Button";
-import { initialPartners } from "../../data/partners";
+import { partnerService } from "../../services/partnerService";
 
 export function HomePage() {
-  const featuredPartners = initialPartners.filter((p) => p.featured).slice(0, 3);
+  const [featuredPartners, setFeaturedPartners] = useState([]);
+
+  useEffect(() => {
+    async function loadPartners() {
+      try {
+        const data = await partnerService.getAll();
+        setFeaturedPartners(Array.isArray(data) ? data.slice(0, 3) : []);
+      } catch (e) {
+        setFeaturedPartners([]);
+      }
+    }
+    loadPartners();
+  }, []);
 
   const steps = [
     {

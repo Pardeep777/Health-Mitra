@@ -1,20 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { faqsData } from "../../data/faqs";
+import { contentService } from "../../services/contentService";
 import { ChevronDown, Search, HelpCircle, Phone, MessageSquare } from "lucide-react";
 import { Button } from "../../components/common/Button";
 
 export function FaqPage() {
+  const [faqs, setFaqs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [openFaq, setOpenFaq] = useState("faq-1");
+  const [openFaq, setOpenFaq] = useState(null);
 
-  const categories = ["All", "General", "Pricing & Validity", "Discounts & Usage", "Verification & Security", "Partnership"];
+  const categories = ["All", "General", "Partners & Discounts", "Card & Membership", "Pricing & Validity", "Verification & Security", "Partnership"];
 
-  const filteredFaqs = faqsData.filter((faq) => {
-    const matchSearch =
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    async function loadFaqs() {
+      try {
+        const data = await contentService.getFaqs();
+        setFaqs(Array.isArray(data) ? data : []);
+        if (Array.isArray(data) && data.length > 0) {
+          setOpenFaq(data[0].id);
+        }
+      } catch (e) {
+        setFaqs([]);
+      }
+    }
+    loadFaqs();
+  }, []);
+
+  const filteredFaqs = faqs.filter((faq) => {
+    const q = (faq.question || "").toLowerCase();
+    const a = (faq.answer || "").toLowerCase();
+    const matchSearch = q.includes(searchTerm.toLowerCase()) || a.includes(searchTerm.toLowerCase());
     const matchCat = selectedCategory === "All" || faq.category === selectedCategory;
     return matchSearch && matchCat;
   });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   CheckCircle2,
@@ -11,11 +11,24 @@ import {
   ArrowRight
 } from "lucide-react";
 import { Button } from "../../components/common/Button";
-import { faqsData } from "../../data/faqs";
+import { contentService } from "../../services/contentService";
 
 export function PricingPage() {
+  const [faqs, setFaqs] = useState([]);
   const [monthlyMedicineSpend, setMonthlyMedicineSpend] = useState(2500);
   const [annualTestSpend, setAnnualTestSpend] = useState(3000);
+
+  useEffect(() => {
+    async function loadFaqs() {
+      try {
+        const data = await contentService.getFaqs();
+        setFaqs(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setFaqs([]);
+      }
+    }
+    loadFaqs();
+  }, []);
 
   // Approximate calculations: 15% on medicine, 20% on tests
   const medicineSavings = Math.round(monthlyMedicineSpend * 12 * 0.15);
@@ -175,7 +188,7 @@ export function PricingPage() {
         </div>
 
         <div className="divide-y divide-slate-200 border border-slate-200 bg-white rounded-2xl shadow-card overflow-hidden">
-          {faqsData.slice(0, 4).map((faq) => (
+          {faqs.slice(0, 4).map((faq) => (
             <div key={faq.id} className="p-5 space-y-1.5">
               <h4 className="text-sm font-bold text-navy-900 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-brand-500 shrink-0" />

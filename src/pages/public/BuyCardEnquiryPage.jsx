@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   CreditCard,
@@ -10,13 +10,14 @@ import {
   Clock,
   Send
 } from "lucide-react";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 
 export function BuyCardEnquiryPage() {
+  const [districts, setDistricts] = useState([]);
   const [formData, setFormData] = useState({
     fullName: "",
     mobile: "",
@@ -32,7 +33,19 @@ export function BuyCardEnquiryPage() {
   const [successModal, setSuccessModal] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const districtOptions = initialDistricts.map((d) => ({
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const data = await districtService.getAll();
+        setDistricts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setDistricts([]);
+      }
+    }
+    loadDistricts();
+  }, []);
+
+  const districtOptions = districts.map((d) => ({
     label: d.name,
     value: d.name
   }));

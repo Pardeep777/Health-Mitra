@@ -1,5 +1,4 @@
 import { api } from "./api";
-import { initialAgents } from "../data/agents";
 
 export const agentService = {
   /**
@@ -8,14 +7,13 @@ export const agentService = {
   async getAll(tab = "all") {
     try {
       const res = await api.get("/admin/agents/list");
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         return res.data.map(normalizeAgent);
       }
     } catch (e) {
-      console.warn("API agents fetch failed, falling back to local dataset", e);
+      console.warn("API agents fetch error", e);
     }
-    const saved = localStorage.getItem("health_mitra_agents");
-    return saved ? JSON.parse(saved) : initialAgents;
+    return [];
   },
 
   /**
@@ -31,14 +29,7 @@ export const agentService = {
     } catch (e) {
       console.warn("API agents search error", e);
     }
-    const all = await this.getAll();
-    const term = query.toLowerCase();
-    return all.filter(
-      (a) =>
-        a.name.toLowerCase().includes(term) ||
-        a.agent_code.toLowerCase().includes(term) ||
-        a.mobile.includes(term)
-    );
+    return [];
   },
 
   async getById(id) {
@@ -60,33 +51,11 @@ export const agentService = {
       });
     }
 
-    try {
-      const res = await api.postFormData("/admin/agents/add", formData);
-      if (res.success) {
-        return { success: true, data: res.data, message: res.message || "Agent created successfully!" };
-      }
-    } catch (e) {
-      console.warn("Agent add API error", e);
+    const res = await api.postFormData("/admin/agents/add", formData);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to create agent.");
     }
-
-    // Local fallback
-    const all = await this.getAll();
-    const newAgent = {
-      id: `AGT-${Date.now().toString().slice(-4)}`,
-      agent_code: `HM-AGT-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: "active",
-      today_cards: 0,
-      month_cards: 0,
-      total_cards: 0,
-      total_commission_earned: 0,
-      rating: 5.0,
-      performance: "On Track",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      ...(agentData instanceof FormData ? Object.fromEntries(agentData) : agentData)
-    };
-    const updated = [newAgent, ...all];
-    localStorage.setItem("health_mitra_agents", JSON.stringify(updated));
-    return { success: true, data: newAgent, message: "Agent created successfully!" };
+    return { success: true, data: res.data, message: res.message || "Agent created successfully!" };
   },
 
   /**

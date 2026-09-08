@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
@@ -15,7 +15,7 @@ import {
   Plus,
   Printer
 } from "lucide-react";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { cardholderService } from "../../services/cardholderService";
 import { agentService } from "../../services/agentService";
 import { Input } from "../../components/common/Input";
@@ -31,6 +31,7 @@ export function AgentRegisterCardholderPage() {
   const { currentUser } = useAuth();
   const { showToast } = useNotifications();
 
+  const [districts, setDistricts] = useState([]);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [createdCard, setCreatedCard] = useState(null);
@@ -53,7 +54,19 @@ export function AgentRegisterCardholderPage() {
 
   const [errors, setErrors] = useState({});
 
-  const districtOptions = initialDistricts.map((d) => ({
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const data = await districtService.getAll();
+        setDistricts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setDistricts([]);
+      }
+    }
+    loadDistricts();
+  }, []);
+
+  const districtOptions = districts.map((d) => ({
     label: d.name,
     value: d.name
   }));

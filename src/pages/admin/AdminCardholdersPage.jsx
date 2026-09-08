@@ -20,7 +20,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { cardholderService } from "../../services/cardholderService";
-import { initialDistricts } from "../../data/districts";
+import { districtService } from "../../services/districtService";
 import { DataTable } from "../../components/common/DataTable";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
@@ -33,6 +33,7 @@ import { useNotifications } from "../../context/NotificationContext";
 
 export function AdminCardholdersPage() {
   const [cardholders, setCardholders] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -86,6 +87,11 @@ export function AdminCardholdersPage() {
     setLoading(true);
     try {
       let data;
+      const [distList] = await Promise.all([
+        districtService.getAll().catch(() => [])
+      ]);
+      setDistricts(distList || []);
+
       if (selectedStatus !== "All") {
         const statusKey = selectedStatus.toLowerCase().replace(" ", "_");
         data = await cardholderService.getByStatus(statusKey);
@@ -696,7 +702,7 @@ export function AdminCardholdersPage() {
               />
               <Select
                 label="District"
-                options={initialDistricts.map((d) => ({ label: d.name, value: d.name }))}
+                options={districts.map((d) => ({ label: d.name, value: d.name }))}
                 value={editingCard.district}
                 onChange={(e) => setEditingCard({ ...editingCard, district: e.target.value })}
               />
