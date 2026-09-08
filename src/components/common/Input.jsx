@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export function Input({
   label,
@@ -10,6 +11,10 @@ export function Input({
   required = false,
   ...props
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <div className="w-full">
       {label && (
@@ -24,14 +29,25 @@ export function Input({
           </div>
         )}
         <input
-          type={type}
+          type={inputType}
           className={`w-full rounded-xl border ${
             error ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200" : "border-slate-200 focus:border-brand-500 focus:ring-brand-100"
           } bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 transition duration-200 ${
             Icon ? "pl-10" : ""
-          } ${className}`}
+          } ${isPassword ? "pr-10" : ""} ${className}`}
           {...props}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+            tabIndex={-1}
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        )}
       </div>
       {error && <p className="mt-1.5 text-xs text-rose-500 font-medium">{error}</p>}
       {!error && helperText && <p className="mt-1 text-xs text-slate-500">{helperText}</p>}
