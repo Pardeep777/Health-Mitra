@@ -102,5 +102,43 @@ export const districtService = {
     }
 
     return { success: true, message: res.message || "Deleted successfully" };
+  },
+
+  /**
+   * Get district rollout status: GET /admin/districts/rollout.php
+   * Query params: ?phase=phase_1 or ?id=1
+   */
+  async getRollout(params = {}) {
+    try {
+      const res = await api.get("/admin/districts/rollout.php", params);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn("API district rollout fetch error", e);
+    }
+    return null;
+  },
+
+  /**
+   * Update district rollout phase and coordinator info: POST /admin/districts/rollout.php
+   * Body: { id, rollout_phase, coordinator_name, coordinator_phone, target_cardholders, headquarters }
+   */
+  async updateRollout({ id, rollout_phase, coordinator_name, coordinator_phone, target_cardholders, headquarters }) {
+    const payload = {
+      id: Number(id),
+      rollout_phase,
+      coordinator_name,
+      coordinator_phone,
+      target_cardholders: target_cardholders ? Number(target_cardholders) : undefined,
+      headquarters
+    };
+
+    const res = await api.post("/admin/districts/rollout.php", payload);
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update district rollout details.");
+    }
+
+    return { success: true, message: res.message || "District rollout updated successfully!" };
   }
 };

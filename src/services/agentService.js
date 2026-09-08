@@ -130,6 +130,87 @@ export const agentService = {
     return { success: true, message: "Agent deleted successfully!" };
   },
 
+  /**
+   * Fetch agent commissions: GET /admin/agents/commission.php
+   * Query params: ?id=...
+   */
+  async getCommissions(params = {}) {
+    try {
+      const res = await api.get("/admin/agents/commission.php", params);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn("API commission fetch error", e);
+    }
+    return [];
+  },
+
+  /**
+   * Clear full pending commission: POST /admin/agents/commission.php
+   * Body: { id, payment_mode, transaction_reference, notes }
+   */
+  async clearPendingCommission({ id, payment_mode = "bank_transfer", transaction_reference = "", notes = "" }) {
+    const res = await api.post("/admin/agents/commission.php", {
+      id: Number(id),
+      payment_mode,
+      transaction_reference,
+      notes
+    });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to process commission clearance.");
+    }
+    return { success: true, message: res.message || "Commission payout cleared successfully!" };
+  },
+
+  /**
+   * Payout for a single card: POST /admin/agents/commission.php
+   * Body: { id, card_id, payment_mode, transaction_reference }
+   */
+  async payoutSingleCard({ id, card_id, payment_mode = "upi", transaction_reference = "" }) {
+    const res = await api.post("/admin/agents/commission.php", {
+      id: Number(id),
+      card_id,
+      payment_mode,
+      transaction_reference
+    });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to process card commission payout.");
+    }
+    return { success: true, message: res.message || "Card payout completed successfully!" };
+  },
+
+  /**
+   * Fetch agent targets: GET /admin/agents/targets.php
+   * Query params: ?id=..., ?status=achieved, ?district_id=...
+   */
+  async getTargets(params = {}) {
+    try {
+      const res = await api.get("/admin/agents/targets.php", params);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn("API targets fetch error", e);
+    }
+    return [];
+  },
+
+  /**
+   * Update daily target for agent: POST /admin/agents/targets.php
+   * Body: { id, target_daily }
+   */
+  async updateTarget({ id, target_daily }) {
+    const res = await api.post("/admin/agents/targets.php", {
+      id: Number(id),
+      target_daily: Number(target_daily)
+    });
+    if (!res.success) {
+      throw new Error(res.message || "Failed to update agent target.");
+    }
+    return { success: true, message: res.message || "Agent target updated successfully!" };
+  },
+
   async incrementRegistration(agentId) {
     const all = await this.getAll();
     const index = all.findIndex((a) => a.id === agentId || a.agent_code === agentId);
