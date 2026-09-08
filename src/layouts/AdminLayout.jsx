@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { AdminSidebar } from "../components/layout/AdminSidebar";
 import { AdminTopNavbar } from "../components/layout/AdminTopNavbar";
-import { DemoRoleSwitcher } from "../components/layout/DemoRoleSwitcher";
 import { Toast } from "../components/common/Toast";
 
 export function AdminLayout() {
@@ -10,7 +9,6 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900">
-      <DemoRoleSwitcher />
       <div className="flex flex-1">
         {/* Sidebar */}
         <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

@@ -1,6 +1,5 @@
 import React from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { DemoRoleSwitcher } from "../components/layout/DemoRoleSwitcher";
 import { Toast } from "../components/common/Toast";
 import { UserProfileDropdown } from "../components/layout/UserProfileDropdown";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
@@ -22,8 +21,6 @@ export function CardholderLayout() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900">
-      <DemoRoleSwitcher />
-
       {/* Member Portal Top Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between shadow-xs transition-all">
         {/* Left: Logo & Member Portal Badge */}

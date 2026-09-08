@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { DemoRoleSwitcher } from "../components/layout/DemoRoleSwitcher";
 import { Toast } from "../components/common/Toast";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { UserProfileDropdown } from "../components/layout/UserProfileDropdown";
@@ -41,8 +40,6 @@ export function PartnerLayout() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900">
-      <DemoRoleSwitcher />
-
       {/* Partner Top Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between shadow-xs transition-all">
         {/* Left: Brand Logo & Partner Badge */}
