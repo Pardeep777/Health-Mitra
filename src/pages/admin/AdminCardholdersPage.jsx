@@ -469,7 +469,7 @@ export function AdminCardholdersPage() {
             className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
           >
             <option value="All">All Districts</option>
-            {initialDistricts.map((d) => (
+            {districts.map((d) => (
               <option key={d.id} value={d.name}>
                 {d.name}
               </option>
@@ -554,7 +554,7 @@ export function AdminCardholdersPage() {
             />
             <Select
               label="District *"
-              options={initialDistricts.map((d) => ({ label: d.name, value: d.name }))}
+              options={districts.map((d) => ({ label: d.name, value: d.name }))}
               value={newCard.district}
               onChange={(e) => setNewCard({ ...newCard, district: e.target.value })}
             />
