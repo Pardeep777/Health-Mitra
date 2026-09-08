@@ -828,9 +828,9 @@ export function AdminCardholdersPage() {
                   </Button>
                   <Button
                     variant="primary"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                     onClick={() => {
-                      showToast("Digital pass shared to cardholder's WhatsApp!", "success");
-                      setSelectedCardForQr(null);
+                      cardholderService.shareOnWhatsApp(selectedCardForQr);
                     }}
                   >
                     Share via WhatsApp

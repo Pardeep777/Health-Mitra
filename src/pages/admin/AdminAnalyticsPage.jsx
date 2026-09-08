@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -23,7 +23,19 @@ import { Badge } from "../../components/common/Badge";
 import { TrendingUp, Users, Building2, IndianRupee, RefreshCw } from "lucide-react";
 
 export function AdminAnalyticsPage() {
-  const stats = analyticsService.getAdminStats();
+  const [stats, setStats] = useState(() => analyticsService.getAdminStats());
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const live = await analyticsService.getLiveAdminStats();
+        setStats(live);
+      } catch (e) {
+        console.warn("Live analytics fetch notice", e);
+      }
+    }
+    loadStats();
+  }, []);
 
   const weeklyTrendData = [
     { day: "Mon", verifications: 145, newRegistrations: 120 },

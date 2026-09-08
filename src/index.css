@@ -39,20 +39,34 @@
 
 /* Print styling for ID Card */
 @media print {
+  html, body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
   #printable-card-area, #printable-card-area * {
-    visibility: visible;
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   #printable-card-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
-    background: white;
+    position: fixed !important;
+    left: 50% !important;
+    top: 20px !important;
+    transform: translateX(-50%) !important;
+    width: 100% !important;
+    max-width: 720px !important;
+    margin: 0 auto !important;
+    padding: 16px !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 99999 !important;
   }
   .no-print {
     display: none !important;

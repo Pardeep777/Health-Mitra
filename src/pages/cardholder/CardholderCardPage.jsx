@@ -15,6 +15,7 @@ import {
   Percent,
   CheckCircle2
 } from "lucide-react";
+import { cardholderService } from "../../services/cardholderService";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 
@@ -59,9 +60,18 @@ export function CardholderCardPage() {
               variant="primary"
               size="sm"
               icon={Share2}
-              onClick={() => showToast("Digital pass sent to your WhatsApp!", "success")}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              onClick={() =>
+                cardholderService.shareOnWhatsApp({
+                  full_name: memberName,
+                  unique_id: uniqueId,
+                  public_token: publicToken,
+                  expiry_date: currentUser?.expiry_date || "01 Sep 2027",
+                  mobile: currentUser?.mobile || ""
+                })
+              }
             >
-              Share Pass
+              Share WhatsApp
             </Button>
           </div>
         </div>

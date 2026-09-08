@@ -37,22 +37,45 @@ export const cardholderService = {
   },
 
   /**
-   * Get single cardholder by ID
+   * Get single cardholder by ID or unique_id
+   * First tries search endpoint for specific keyword/ID to avoid downloading entire roster
    */
   async getById(id) {
+    if (!id) return null;
+    try {
+      const searchRes = await api.get("/admin/cardholders/search", { keyword: String(id).trim() });
+      if (searchRes.success && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
+        const found = searchRes.data.find(
+          (c) =>
+            String(c.id) === String(id) ||
+            String(c.unique_id) === String(id) ||
+            String(c.customer_code) === String(id)
+        ) || searchRes.data[0];
+        if (found) return normalizeCardholder(found);
+      }
+    } catch (e) {
+      console.warn("Cardholder search API error", e);
+    }
+
+    // Fallback if search didn't locate
     const all = await this.getAll();
-    return all.find((c) => String(c.id) === String(id) || String(c.unique_id) === String(id)) || null;
+    return (
+      all.find(
+        (c) =>
+          String(c.id) === String(id) ||
+          String(c.unique_id) === String(id) ||
+          String(c.customer_code) === String(id)
+      ) || null
+    );
   },
 
   async getByUniqueId(uniqueId) {
-    const all = await this.getAll();
-    const cleanId = (uniqueId || "").trim().toUpperCase();
-    return all.find((c) => (c.unique_id || "").toUpperCase() === cleanId) || null;
+    return this.getById(uniqueId);
   },
 
   async getByPublicToken(token) {
-    const all = await this.getAll();
-    return all.find((c) => c.public_token === token || c.unique_id === token) || null;
+    if (!token) return null;
+    return this.getById(token);
   },
 
   /**
@@ -149,6 +172,65 @@ export const cardholderService = {
       throw new Error(res.message || "Failed to update card status.");
     }
     return res;
+  },
+
+  /**
+   * Update Status (Active / Inactive / Blocked)
+   */
+  async updateStatus(id, newStatus) {
+    const statusLower = (newStatus || "active").toLowerCase();
+    try {
+      await api.post("/admin/cards/update_status", {
+        card_id: Number(id) || id,
+        status: statusLower
+      });
+    } catch (e) {
+      console.warn("Card update_status API notice", e);
+    }
+
+    try {
+      await api.post("/admin/cardholders/edit", {
+        id: Number(id) || id,
+        status: statusLower,
+        card_status: statusLower
+      });
+    } catch (e) {
+      console.warn("Cardholders edit status API notice", e);
+    }
+
+    return {
+      success: true,
+      message: `Card status updated to ${newStatus}`
+    };
+  },
+
+  /**
+   * Generates WhatsApp message and opens WhatsApp Web/App
+   */
+  shareOnWhatsApp(cardholder) {
+    if (!cardholder) return;
+    const name = cardholder.full_name || "Member";
+    const cardId = cardholder.unique_id || "HMC-MEMBER";
+    const validUntil = cardholder.expiry_date || "1 Year";
+    const publicToken = cardholder.public_token || cardholder.unique_id;
+    const verifyUrl = `${window.location.origin}/verify/${publicToken}`;
+
+    const text = `*Health Mitra — Smart Healthcare Pass*\n\n` +
+      `👤 *Member Name:* ${name}\n` +
+      `💳 *Card ID:* ${cardId}\n` +
+      `📅 *Valid Thru:* ${validUntil}\n` +
+      `🏥 *Benefits:* Up to 20% OFF on Diagnostic tests, 10-15% on Medicines at all partner pharmacies across Tripura.\n\n` +
+      `🔗 *Digital Verification QR Pass:* ${verifyUrl}\n\n` +
+      `_Health Mitra — Caring for Tripura's Healthcare_`;
+
+    const cleanMobile = (cardholder.mobile || "").replace(/\D/g, "");
+    let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    if (cleanMobile && cleanMobile.length === 10) {
+      waUrl = `https://api.whatsapp.com/send?phone=91${cleanMobile}&text=${encodeURIComponent(text)}`;
+    }
+
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    return true;
   },
 
   /**

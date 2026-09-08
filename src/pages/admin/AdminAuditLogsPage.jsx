@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { initialAuditLogs } from "../../data/auditLogs";
+import React, { useState, useEffect } from "react";
+import { cardholderService } from "../../services/cardholderService";
 import { ShieldCheck, Search, Filter, Lock, FileText, CheckCircle2, UserCheck } from "lucide-react";
 import { DataTable } from "../../components/common/DataTable";
 import { StatCard } from "../../components/common/StatCard";
@@ -7,13 +7,45 @@ import { Badge } from "../../components/common/Badge";
 
 export function AdminAuditLogsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [logs, setLogs] = useState(initialAuditLogs);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadLogs() {
+      setLoading(true);
+      try {
+        const liveLogs = await cardholderService.getVerificationLogs();
+        if (Array.isArray(liveLogs) && liveLogs.length > 0) {
+          const formatted = liveLogs.map((l, i) => ({
+            id: l.id || i + 1,
+            timestamp: l.timestamp || l.created_at || new Date().toLocaleString(),
+            user: l.partner_name || "Partner Verification",
+            role: "Partner",
+            action: `Discount Verification (${l.service_type || "General"})`,
+            module: "Verification Pass",
+            record: l.card_id || l.unique_id || `HMC-${l.id}`,
+            details: `Bill: ₹${l.bill_amount || 0} • Discount: -₹${l.discount_amount || 0}`,
+            ip_address: l.ip_address || "192.168.1.1",
+            status: "Verified"
+          }));
+          setLogs(formatted);
+        } else {
+          setLogs([]);
+        }
+      } catch (e) {
+        console.warn("Audit logs live fetch error", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadLogs();
+  }, []);
 
   const filtered = logs.filter((l) =>
-    l.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.record.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.role.toLowerCase().includes(searchTerm.toLowerCase())
+    (l.user || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (l.action || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (l.record || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (l.role || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const columns = [
@@ -105,6 +137,7 @@ export function AdminAuditLogsPage() {
         columns={columns}
         data={filtered}
         totalItems={filtered.length}
+        loading={loading}
         pageSize={10}
         currentPage={1}
       />

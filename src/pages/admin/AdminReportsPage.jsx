@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FileSpreadsheet,
   Download,
@@ -11,20 +11,35 @@ import {
   RefreshCw,
   CheckCircle2,
   Filter,
-  ExternalLink
+  ExternalLink,
+  Eye
 } from "lucide-react";
 import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { useNotifications } from "../../context/NotificationContext";
 import { reportService } from "../../services/reportService";
+import { districtService } from "../../services/districtService";
 
 export function AdminReportsPage() {
   const { showToast } = useNotifications();
   const [downloadingReport, setDownloadingReport] = useState(null);
+  const [districts, setDistricts] = useState([]);
   const [selectedDistrict, setSelectedDistrict] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const dists = await districtService.getAll();
+        setDistricts(Array.isArray(dists) ? dists : []);
+      } catch (e) {
+        console.warn("Report district fetch notice", e);
+      }
+    }
+    loadDistricts();
+  }, []);
 
   const reports = [
     {
@@ -160,10 +175,11 @@ export function AdminReportsPage() {
             className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg text-slate-700 focus:ring-1 focus:ring-brand-500 focus:outline-none"
           >
             <option value="All">All Districts</option>
-            <option value="1">West Tripura (1)</option>
-            <option value="2">Sepahijala (2)</option>
-            <option value="3">Gomati (3)</option>
-            <option value="4">South Tripura (4)</option>
+            {districts.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
           </select>
         </div>
 

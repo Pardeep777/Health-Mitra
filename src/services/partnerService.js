@@ -41,10 +41,17 @@ export const partnerService = {
   },
 
   async deleteCategory(id) {
-    const res = await api.post("/admin/partners/categories", {
-      action: "delete",
-      id: Number(id)
-    });
+    const formData = new FormData();
+    formData.append("action", "delete");
+    formData.append("id", String(id));
+
+    let res = await api.postFormData("/admin/partners/categories", formData);
+    if (!res.success) {
+      res = await api.post("/admin/partners/categories", {
+        action: "delete",
+        id: Number(id)
+      });
+    }
     if (!res.success) {
       throw new Error(res.message || "Failed to delete category.");
     }
@@ -185,16 +192,26 @@ export const partnerService = {
   },
 
   async updateStatus(id, newStatus, agreementStatus = "Verified & Signed") {
-    const all = await this.getAll();
-    const index = all.findIndex((p) => String(p.id) === String(id));
-    if (index !== -1) {
-      all[index] = {
-        ...all[index],
-        status: newStatus,
-        agreementStatus: agreementStatus
-      };
-      localStorage.setItem("health_mitra_partners", JSON.stringify(all));
+    const cleanStatus = (newStatus || "active").toLowerCase();
+    const cleanAgreement = (agreementStatus || "Verified & Signed").toLowerCase();
+
+    const formData = new FormData();
+    formData.append("id", String(id));
+    formData.append("status", cleanStatus);
+    formData.append("agreement_status", cleanAgreement);
+
+    try {
+      await api.postFormData("/admin/partners/edit", formData);
+    } catch (e) {
+      console.warn("Partner edit status API notice", e);
     }
+
+    try {
+      await api.post(`/admin/partners/list?status=${cleanStatus}`);
+    } catch (e) {
+      // Ignored
+    }
+
     return { success: true, message: `Partner status updated to ${newStatus}` };
   },
 

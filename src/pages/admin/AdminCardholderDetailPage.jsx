@@ -67,26 +67,30 @@ export function AdminCardholderDetailPage() {
     try {
       const res = await cardholderService.renew(cardholder.unique_id);
       if (res) {
-        setCardholder(res);
-        showToast(`Membership renewed until ${res.expiry_date}!`, "success");
+        showToast(`Membership renewed for 1 year!`, "success");
+        loadCardholder();
       }
     } catch (err) {
       showToast("Renewal failed.", "error");
     }
   };
 
-  // 2. Toggle Status via POST /admin/cards/update_status
+  // 2. Toggle Status via POST /admin/cards/update_status and POST /admin/cardholders/edit
   const handleToggleStatus = async () => {
     if (!cardholder) return;
-    const nextStatus = cardholder.status === "Active" ? "Inactive" : "Active";
+    const isCurrentlyActive = cardholder.status?.toLowerCase() === "active";
+    const nextStatus = isCurrentlyActive ? "Inactive" : "Active";
     setStatusLoading(true);
     try {
-      await cardholderService.updateCardStatus(cardholder.id || 1, nextStatus.toLowerCase());
-      const updated = await cardholderService.updateStatus(cardholder.unique_id, nextStatus);
-      setCardholder(updated || { ...cardholder, status: nextStatus });
-      showToast(`Card status updated to ${nextStatus}`, "info");
+      await cardholderService.updateStatus(cardholder.id || cardholder.unique_id, nextStatus);
+      setCardholder((prev) => ({
+        ...prev,
+        status: nextStatus,
+        card_status: nextStatus.toLowerCase()
+      }));
+      showToast(`Card status updated to ${nextStatus}`, "success");
     } catch (err) {
-      showToast("Failed to update status on server.", "error");
+      showToast(err.message || "Failed to update status on server.", "error");
     } finally {
       setStatusLoading(false);
     }
@@ -97,7 +101,7 @@ export function AdminCardholderDetailPage() {
     if (!cardholder) return;
     setRegenLoading(true);
     try {
-      const res = await cardholderService.regenerateToken(cardholder.id || 1);
+      await cardholderService.regenerateToken(cardholder.id || 1);
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const newPublicToken = `HM_PUBLIC_${randomSuffix}_${Math.floor(10 + Math.random() * 90)}`;
       setCardholder((prev) => ({ ...prev, public_token: newPublicToken }));
@@ -124,6 +128,9 @@ export function AdminCardholderDetailPage() {
     );
   }
 
+  const calculatedSavings = verifications.reduce((sum, v) => sum + (Number(v.discount_amount) || 0), 0);
+  const totalRedemptions = verifications.length;
+
   return (
     <div className="space-y-8">
       {/* Top Breadcrumb & Action Bar */}
@@ -138,7 +145,7 @@ export function AdminCardholderDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-extrabold text-navy-900">{cardholder.full_name}</h1>
-              <Badge variant={cardholder.status === "Active" ? "success" : "warning"}>
+              <Badge variant={cardholder.status?.toLowerCase() === "active" ? "success" : "danger"}>
                 {cardholder.status}
               </Badge>
             </div>
@@ -149,6 +156,14 @@ export function AdminCardholderDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold"
+            onClick={() => cardholderService.shareOnWhatsApp(cardholder)}
+          >
+            Share WhatsApp
+          </Button>
           <Button variant="outline" size="sm" icon={Printer} onClick={() => setPrintModalOpen(true)}>
             Print Slip
           </Button>
@@ -160,10 +175,15 @@ export function AdminCardholderDetailPage() {
             onClick={handleRegenerateToken}
             title="Re-generate QR verification token"
           >
-            Re-generate QR Token
+            Re-generate QR
           </Button>
-          <Button variant="outline" size="sm" loading={statusLoading} onClick={handleToggleStatus}>
-            {cardholder.status === "Active" ? "Mark Inactive" : "Mark Active"}
+          <Button
+            variant={cardholder.status?.toLowerCase() === "active" ? "danger" : "outline"}
+            size="sm"
+            loading={statusLoading}
+            onClick={handleToggleStatus}
+          >
+            {cardholder.status?.toLowerCase() === "active" ? "Mark Inactive" : "Mark Active"}
           </Button>
           <Button variant="primary" size="sm" icon={RefreshCw} onClick={handleRenew}>
             Renew 1 Year (₹49)
@@ -200,7 +220,7 @@ export function AdminCardholderDetailPage() {
             <Card className="p-4 text-center">
               <p className="text-xs text-slate-500 font-semibold uppercase">Total Savings</p>
               <p className="text-2xl font-extrabold text-brand-600 mt-1">
-                ₹{cardholder.total_savings_amount?.toLocaleString() || "1,250"}
+                ₹{calculatedSavings.toLocaleString()}
               </p>
               <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">Across Partner Outlets</p>
             </Card>
@@ -208,7 +228,7 @@ export function AdminCardholderDetailPage() {
             <Card className="p-4 text-center">
               <p className="text-xs text-slate-500 font-semibold uppercase">Times Redeemed</p>
               <p className="text-2xl font-extrabold text-navy-900 mt-1">
-                {cardholder.times_used || verifications.length || 4}
+                {totalRedemptions}
               </p>
               <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Verified QR scans</p>
             </Card>
