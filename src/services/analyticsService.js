@@ -1,7 +1,12 @@
+import { api } from "./api";
 import { cardholderService } from "./cardholderService";
 import { partnerService } from "./partnerService";
 import { agentService } from "./agentService";
 import { districtService } from "./districtService";
+
+let cachedStats = null;
+let lastFetchTime = 0;
+const CACHE_TTL_MS = 30000; // 30 seconds cache
 
 export const analyticsService = {
   getAdminStats() {
@@ -59,7 +64,38 @@ export const analyticsService = {
     };
   },
 
-  async getLiveAdminStats() {
+  async getLiveAdminStats(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && cachedStats && now - lastFetchTime < CACHE_TTL_MS) {
+      return cachedStats;
+    }
+
+    // 1. Try dedicated single dashboard summary endpoint first to avoid multiple API calls
+    try {
+      const summaryRes = await api.get("/admin/dashboard");
+      if (summaryRes.success && summaryRes.data && typeof summaryRes.data === "object") {
+        const d = summaryRes.data;
+        const computed = {
+          ...this.getAdminStats(),
+          totalCardholders: Number(d.total_cardholders || d.cardholders_count || 0),
+          activeCards: Number(d.active_cards || d.active_cardholders || 0),
+          expiringSoon: Number(d.expiring_soon || 0),
+          expiredCards: Number(d.expired_cards || 0),
+          totalPartners: Number(d.total_partners || d.partners_count || 0),
+          activePartners: Number(d.active_partners || 0),
+          pendingPartners: Number(d.pending_partners || 0),
+          fieldAgents: Number(d.field_agents || d.agents_count || 0),
+          activeAgentsToday: Number(d.active_agents || 0),
+          totalRevenue: Number(d.total_revenue || (Number(d.total_cardholders || 0) * 49))
+        };
+        cachedStats = computed;
+        lastFetchTime = now;
+        return computed;
+      }
+    } catch (e) {
+      // Fall through to lightweight aggregator
+    }
+
     try {
       const [cardholders, partners, agents, districts] = await Promise.all([
         cardholderService.getAll().catch(() => []),
@@ -74,8 +110,6 @@ export const analyticsService = {
       const hasLiveAgents = Array.isArray(agents) && agents.length > 0;
 
       const totalCardholders = hasLiveCardholders ? cardholders.length : defaultStats.totalCardholders;
-      
-      const now = Date.now();
       const in30Days = now + 30 * 24 * 60 * 60 * 1000;
 
       let activeCards = defaultStats.activeCards;
@@ -122,14 +156,12 @@ export const analyticsService = {
       const activeRatio = totalCardholders > 0 ? ((activeCards / totalCardholders) * 100).toFixed(1) : "100";
       const year1TargetPercentage = ((totalCardholders / defaultStats.year1Target) * 100).toFixed(2);
 
-      // Status breakdown chart data
       const cardStatusBreakdown = [
         { name: "Active Cards", value: activeCards, color: "#10B981" },
         { name: "Expiring Soon (30d)", value: expiringSoon, color: "#F59E0B" },
         { name: "Expired Cards", value: expiredCards, color: "#EF4444" }
       ];
 
-      // Partner breakdown by category if available
       let partnerCategoryBreakdown = defaultStats.partnerCategoryBreakdown;
       if (hasLivePartners) {
         const catMap = {};
@@ -145,13 +177,16 @@ export const analyticsService = {
         }));
       }
 
-      // District enrollment distribution
       let districtEnrollmentData = defaultStats.districtEnrollmentData;
       if (Array.isArray(districts) && districts.length > 0) {
         districtEnrollmentData = districts.map((d) => {
           const matchedCards = hasLiveCardholders
-            ? cardholders.filter((c) => String(c.district_id) === String(d.id) || (c.district || "").toLowerCase() === (d.name || "").toLowerCase()).length
-            : (d.enrolledCardholders || 1200);
+            ? cardholders.filter(
+                (c) =>
+                  String(c.district_id) === String(d.id) ||
+                  (c.district || "").toLowerCase() === (d.name || "").toLowerCase()
+              ).length
+            : d.enrolledCardholders || 1200;
           const target = d.targetCardholders || 50000;
           return {
             district: d.name,
@@ -162,7 +197,7 @@ export const analyticsService = {
         });
       }
 
-      return {
+      const finalStats = {
         ...defaultStats,
         totalCardholders,
         activeCards,
@@ -181,6 +216,10 @@ export const analyticsService = {
         partnerCategoryBreakdown,
         districtEnrollmentData
       };
+
+      cachedStats = finalStats;
+      lastFetchTime = now;
+      return finalStats;
     } catch (e) {
       return this.getAdminStats();
     }

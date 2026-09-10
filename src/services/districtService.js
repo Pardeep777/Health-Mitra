@@ -1,15 +1,26 @@
 import { api } from "./api";
 
+let districtCache = null;
+let lastDistrictFetchTime = 0;
+const DISTRICT_CACHE_TTL = 60000; // 60 seconds
+
 export const districtService = {
   /**
    * Fetch all districts from backend API: GET /admin/districts/list
    */
-  async getAll() {
+  async getAll(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && districtCache && now - lastDistrictFetchTime < DISTRICT_CACHE_TTL) {
+      return districtCache;
+    }
+
     const res = await api.get("/admin/districts/list");
     if (res.success && Array.isArray(res.data)) {
+      districtCache = res.data;
+      lastDistrictFetchTime = now;
       return res.data;
     }
-    return [];
+    return districtCache || [];
   },
 
   /**
@@ -31,6 +42,7 @@ export const districtService = {
       throw new Error(res.message || "Failed to add district.");
     }
 
+    districtCache = null; // Invalidate cache
     return { success: true, data: res.data, message: res.message || "District added successfully" };
   },
 
@@ -57,6 +69,7 @@ export const districtService = {
       throw new Error(res.message || "Failed to add area.");
     }
 
+    districtCache = null; // Invalidate cache
     return { success: true, data: res.data, message: res.message || "Area added successfully" };
   },
 
@@ -84,6 +97,7 @@ export const districtService = {
       throw new Error(res.message || "Failed to update district/area.");
     }
 
+    districtCache = null;
     return { success: true, message: res.message || "Updated successfully" };
   },
 
@@ -101,6 +115,7 @@ export const districtService = {
       throw new Error(res.message || "Failed to delete district/area.");
     }
 
+    districtCache = null;
     return { success: true, message: res.message || "Deleted successfully" };
   },
 
@@ -139,6 +154,7 @@ export const districtService = {
       throw new Error(res.message || "Failed to update district rollout details.");
     }
 
+    districtCache = null;
     return { success: true, message: res.message || "District rollout updated successfully!" };
   }
 };
