@@ -16,7 +16,7 @@ export function AdminRenewalsPage() {
     setLoading(true);
     try {
       const data = await renewalService.getAll();
-      setRenewals(data);
+      setRenewals(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
@@ -37,6 +37,17 @@ export function AdminRenewalsPage() {
     showToast(`Card ${card_id} renewed for 365 days!`, "success");
     loadData();
   };
+
+  const expiringCount = renewals.filter(
+    (r) => r.status === "Expiring Soon" || (r.days_remaining >= 0 && r.days_remaining <= 30)
+  ).length;
+  const expiredCount = renewals.filter(
+    (r) => r.status === "Expired" || r.days_remaining < 0
+  ).length;
+  const renewedCount = renewals.filter((r) => r.status === "Renewed").length;
+  const totalCount = renewals.length;
+  const renewalRate =
+    totalCount > 0 ? `${(((totalCount - expiredCount) / totalCount) * 100).toFixed(1)}%` : "100%";
 
   const columns = [
     {
@@ -64,7 +75,9 @@ export function AdminRenewalsPage() {
                 : "bg-emerald-100 text-emerald-800"
             }`}
           >
-            {row.days_remaining < 0 ? `Expired ${Math.abs(row.days_remaining)} days ago` : `${row.days_remaining} days left`}
+            {row.days_remaining < 0
+              ? `Expired ${Math.abs(row.days_remaining)} days ago`
+              : `${row.days_remaining} days left`}
           </span>
         </div>
       )
@@ -85,7 +98,15 @@ export function AdminRenewalsPage() {
       key: "status",
       render: (row) => (
         <div className="space-y-1">
-          <Badge variant={row.status === "Renewed" ? "purple" : row.status === "Expiring Soon" ? "warning" : "danger"}>
+          <Badge
+            variant={
+              row.status === "Renewed"
+                ? "purple"
+                : row.status === "Expiring Soon"
+                ? "warning"
+                : "danger"
+            }
+          >
             {row.status}
           </Badge>
           <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{row.action_taken}</p>
@@ -127,16 +148,38 @@ export function AdminRenewalsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-navy-900">Renewal Management System</h2>
-          <p className="text-xs text-slate-500">Automated 30-day, 15-day, and 7-day member renewal workflows</p>
+          <p className="text-xs text-slate-500">
+            Automated 30-day, 15-day, and 7-day member renewal workflows
+          </p>
         </div>
       </div>
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Expiring in 30 Days" value="1,824" subtitle="Under active reminder" variant="amber" />
-        <StatCard title="Expired Cards" value="1,881" subtitle="Assigned to field agents" variant="default" />
-        <StatCard title="Renewed This Month" value="1,204" subtitle="Successful conversions" variant="brand" />
-        <StatCard title="Renewal Rate" value="70.4%" subtitle="Target: 70% assumption" variant="emerald" />
+        <StatCard
+          title="Expiring in 30 Days"
+          value={expiringCount.toLocaleString()}
+          subtitle="Under active reminder"
+          variant="amber"
+        />
+        <StatCard
+          title="Expired Cards"
+          value={expiredCount.toLocaleString()}
+          subtitle="Assigned to field agents"
+          variant="default"
+        />
+        <StatCard
+          title="Renewed Records"
+          value={renewedCount.toLocaleString()}
+          subtitle="Successful conversions"
+          variant="brand"
+        />
+        <StatCard
+          title="Retention Ratio"
+          value={renewalRate}
+          subtitle="Network renewals"
+          variant="emerald"
+        />
       </div>
 
       {/* Reminder Schedule Timeline Ribbon */}
@@ -172,6 +215,7 @@ export function AdminRenewalsPage() {
         columns={columns}
         data={renewals}
         totalItems={renewals.length}
+        loading={loading}
         pageSize={10}
         currentPage={1}
       />
