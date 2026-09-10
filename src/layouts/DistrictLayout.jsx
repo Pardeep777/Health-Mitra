@@ -29,8 +29,10 @@ export function DistrictLayout() {
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between shadow-xs transition-all">
         {/* Left: Logo & District Badge */}
         <div className="flex items-center gap-3">
-          <Link to="/district/dashboard" className="flex items-center gap-2.5">
-            <img src={logoImg} alt="Health Mitra" className="h-9 w-auto" />
+          <Link to="/district/dashboard" className="flex items-center gap-2.5 group">
+            <div className="bg-white rounded-xl p-1 shadow-2xs border border-slate-200/80 flex items-center justify-center">
+              <img src={logoImg} alt="Health Mitra" className="h-8 sm:h-9 w-auto object-contain" />
+            </div>
             <div className="hidden sm:flex flex-col">
               <span className="font-extrabold text-xs text-navy-900 tracking-tight leading-tight">
                 DISTRICT COORDINATOR
@@ -83,4 +85,3 @@ export function DistrictLayout() {
     </div>
   );
 }
-

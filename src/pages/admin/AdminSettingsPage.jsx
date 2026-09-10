@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Settings,
   CreditCard,
@@ -14,10 +14,13 @@ import { Card } from "../../components/common/Card";
 import { Input } from "../../components/common/Input";
 import { Button } from "../../components/common/Button";
 import { useNotifications } from "../../context/NotificationContext";
+import { settingsService } from "../../services/settingsService";
 
 export function AdminSettingsPage() {
   const { showToast } = useNotifications();
   const [activeTab, setActiveTab] = useState("general");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [settings, setSettings] = useState({
     cardPrice: "49",
@@ -28,12 +31,37 @@ export function AdminSettingsPage() {
     smsGatewayProvider: "Fast2SMS (Active)",
     whatsAppApiStatus: "Meta Cloud API Connected",
     dpdpaVersion: "v1.2",
-    auditRetentionMonths: "24"
+    auditRetentionMonths: "24",
+    expirySmsTemplate:
+      "Dear {name}, your Health Mitra card {card_id} expires in 30 days on {expiry_date}. Renew today for ₹49 to keep saving up to 20% on medicines & tests: https://cupan.getfreedeal.com/renew/{token}"
   });
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    async function loadSettings() {
+      setLoading(true);
+      try {
+        const live = await settingsService.getSettings();
+        if (live) setSettings((prev) => ({ ...prev, ...live }));
+      } catch (err) {
+        console.warn("Settings fetch notice", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    showToast("Settings updated successfully!", "success");
+    setSaving(true);
+    try {
+      const res = await settingsService.saveSettings(settings);
+      showToast(res.message || "Settings updated successfully!", "success");
+    } catch (err) {
+      showToast(err.message || "Failed to update settings.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tabs = [
@@ -47,7 +75,9 @@ export function AdminSettingsPage() {
     <div className="space-y-6 max-w-5xl">
       <div>
         <h2 className="text-xl font-bold text-navy-900">Platform Settings</h2>
-        <p className="text-xs text-slate-500">Configure global card prices, communication templates, and security controls</p>
+        <p className="text-xs text-slate-500">
+          Real-time API endpoints: /api/admin/settings, /api/admin/config
+        </p>
       </div>
 
       {/* Tabs */}
@@ -118,7 +148,7 @@ export function AdminSettingsPage() {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" icon={Save}>
+              <Button type="submit" loading={saving} icon={Save}>
                 Save Commercial Settings
               </Button>
             </div>
@@ -149,12 +179,13 @@ export function AdminSettingsPage() {
               <textarea
                 rows={2}
                 className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-3"
-                defaultValue="Dear {name}, your Health Mitra card {card_id} expires in 30 days on {expiry_date}. Renew today for ₹49 to keep saving up to 20% on medicines & tests: https://healthmitra.demo/renew/{token}"
+                value={settings.expirySmsTemplate || ""}
+                onChange={(e) => setSettings({ ...settings, expirySmsTemplate: e.target.value })}
               />
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" icon={Save}>
+              <Button type="submit" loading={saving} icon={Save}>
                 Save Messaging Templates
               </Button>
             </div>
@@ -190,7 +221,7 @@ export function AdminSettingsPage() {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" icon={Save}>
+              <Button type="submit" loading={saving} icon={Save}>
                 Update Compliance Settings
               </Button>
             </div>

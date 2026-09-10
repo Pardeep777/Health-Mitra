@@ -72,37 +72,46 @@ export function AdminSidebar({ isOpen, onClose }) {
 
       {/* Sidebar container */}
       <aside
-        className={`fixed top-0 lg:top-[33px] bottom-0 left-0 z-40 w-64 bg-navy-950 text-slate-300 border-r border-navy-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-navy-950 text-slate-300 border-r border-navy-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between px-5 h-16 border-b border-navy-800">
-          <Link to="/" className="flex items-center gap-3">
-            <img
-              src={logoImg}
-              alt="Health Mitra Logo"
-              className="h-9 w-auto object-contain bg-white rounded-xl p-1 shadow-sm"
-            />
+        <div className="flex items-center justify-between px-4 h-16 border-b border-navy-800 bg-navy-950 shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="bg-white rounded-xl p-1.5 shadow-sm flex items-center justify-center">
+              <img
+                src={logoImg}
+                alt="Health Mitra Logo"
+                className="h-7 w-auto object-contain"
+              />
+            </div>
+            <div>
+              <span className="font-extrabold text-white text-base tracking-tight block leading-none">
+                Health <span className="text-brand-500">Mitra</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium tracking-wide">Operations Control</span>
+            </div>
           </Link>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 lg:hidden"
+            aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* User Mini Card */}
-        <div className="px-4 py-3.5 mx-3 my-3 rounded-xl bg-navy-900 border border-navy-800 flex items-center gap-3">
+        <div className="px-3.5 py-3 mx-3 my-3 rounded-2xl bg-navy-900/90 border border-navy-800 flex items-center gap-3 shadow-sm shrink-0">
           <img
             src={currentUser?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100"}
             alt="Avatar"
-            className="w-9 h-9 rounded-full object-cover ring-2 ring-brand-500/50"
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-brand-500/40"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">{currentUser?.name || "Admin"}</p>
-            <p className="text-[10px] text-brand-400 font-semibold uppercase tracking-wider">Super Administrator</p>
+            <p className="text-xs font-bold text-white truncate">{currentUser?.name || "Super Admin"}</p>
+            <p className="text-[10px] text-brand-400 font-bold uppercase tracking-wider">Super Administrator</p>
           </div>
         </div>
 
@@ -142,7 +151,7 @@ export function AdminSidebar({ isOpen, onClose }) {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-navy-800 flex items-center justify-between">
+        <div className="p-3 border-t border-navy-800 flex items-center justify-between shrink-0">
           <Link
             to="/"
             className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-navy-800 transition"

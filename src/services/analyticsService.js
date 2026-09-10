@@ -10,6 +10,7 @@ export const analyticsService = {
       activeCards: 44821,
       expiringSoon: 1824,
       expiredCards: 1881,
+      activeRatio: "92.3",
       totalPartners: 126,
       activePartners: 102,
       pendingPartners: 18,
@@ -67,30 +68,118 @@ export const analyticsService = {
         districtService.getAll().catch(() => [])
       ]);
 
-      const totalCardholders = cardholders.length || 48526;
-      const activeCards = cardholders.filter((c) => c.status === "Active").length || (cardholders.length > 0 ? cardholders.length : 44821);
-      const expiringSoon = cardholders.filter((c) => c.status?.toLowerCase().includes("expir")).length || 1824;
-      const expiredCards = cardholders.filter((c) => c.status?.toLowerCase() === "expired").length || 1881;
+      const defaultStats = this.getAdminStats();
+      const hasLiveCardholders = Array.isArray(cardholders) && cardholders.length > 0;
+      const hasLivePartners = Array.isArray(partners) && partners.length > 0;
+      const hasLiveAgents = Array.isArray(agents) && agents.length > 0;
 
-      const totalPartners = partners.length || 126;
-      const activePartners = partners.filter((p) => p.status === "Active").length || 102;
-      const pendingPartners = partners.filter((p) => p.status === "Pending").length || 18;
+      const totalCardholders = hasLiveCardholders ? cardholders.length : defaultStats.totalCardholders;
+      
+      const now = Date.now();
+      const in30Days = now + 30 * 24 * 60 * 60 * 1000;
 
-      const fieldAgents = agents.length || 87;
+      let activeCards = defaultStats.activeCards;
+      let expiringSoon = defaultStats.expiringSoon;
+      let expiredCards = defaultStats.expiredCards;
+
+      if (hasLiveCardholders) {
+        activeCards = cardholders.filter((c) => {
+          const s = (c.status || c.card_status || "").toLowerCase();
+          return s === "active" || s === "valid";
+        }).length;
+
+        expiringSoon = cardholders.filter((c) => {
+          if (!c.expiry_date) return false;
+          const expTime = new Date(c.expiry_date).getTime();
+          return expTime >= now && expTime <= in30Days;
+        }).length;
+
+        expiredCards = cardholders.filter((c) => {
+          const s = (c.status || "").toLowerCase();
+          if (s === "expired") return true;
+          if (!c.expiry_date) return false;
+          return new Date(c.expiry_date).getTime() < now;
+        }).length;
+      }
+
+      const totalPartners = hasLivePartners ? partners.length : defaultStats.totalPartners;
+      const activePartners = hasLivePartners
+        ? partners.filter((p) => (p.status || "").toLowerCase() === "active").length
+        : defaultStats.activePartners;
+      const pendingPartners = hasLivePartners
+        ? partners.filter((p) => {
+            const s = (p.status || "").toLowerCase();
+            return s === "pending" || s === "inactive";
+          }).length
+        : defaultStats.pendingPartners;
+
+      const fieldAgents = hasLiveAgents ? agents.length : defaultStats.fieldAgents;
+      const activeAgents = hasLiveAgents
+        ? agents.filter((a) => (a.status || "").toLowerCase() === "active").length
+        : defaultStats.activeAgentsToday;
+
       const totalRevenue = totalCardholders * 49;
+      const activeRatio = totalCardholders > 0 ? ((activeCards / totalCardholders) * 100).toFixed(1) : "100";
+      const year1TargetPercentage = ((totalCardholders / defaultStats.year1Target) * 100).toFixed(2);
+
+      // Status breakdown chart data
+      const cardStatusBreakdown = [
+        { name: "Active Cards", value: activeCards, color: "#10B981" },
+        { name: "Expiring Soon (30d)", value: expiringSoon, color: "#F59E0B" },
+        { name: "Expired Cards", value: expiredCards, color: "#EF4444" }
+      ];
+
+      // Partner breakdown by category if available
+      let partnerCategoryBreakdown = defaultStats.partnerCategoryBreakdown;
+      if (hasLivePartners) {
+        const catMap = {};
+        partners.forEach((p) => {
+          const cat = p.category || "General";
+          catMap[cat] = (catMap[cat] || 0) + 1;
+        });
+        const colors = ["#FF5A00", "#3B82F6", "#10B981", "#8B5CF6", "#EC4899"];
+        partnerCategoryBreakdown = Object.entries(catMap).map(([name, count], i) => ({
+          name,
+          count,
+          color: colors[i % colors.length]
+        }));
+      }
+
+      // District enrollment distribution
+      let districtEnrollmentData = defaultStats.districtEnrollmentData;
+      if (Array.isArray(districts) && districts.length > 0) {
+        districtEnrollmentData = districts.map((d) => {
+          const matchedCards = hasLiveCardholders
+            ? cardholders.filter((c) => String(c.district_id) === String(d.id) || (c.district || "").toLowerCase() === (d.name || "").toLowerCase()).length
+            : (d.enrolledCardholders || 1200);
+          const target = d.targetCardholders || 50000;
+          return {
+            district: d.name,
+            cards: matchedCards,
+            target: target,
+            percentage: ((matchedCards / target) * 100).toFixed(1)
+          };
+        });
+      }
 
       return {
-        ...this.getAdminStats(),
+        ...defaultStats,
         totalCardholders,
         activeCards,
         expiringSoon,
         expiredCards,
+        activeRatio,
         totalPartners,
         activePartners,
         pendingPartners,
         fieldAgents,
+        activeAgentsToday: activeAgents,
         totalRevenue,
-        districtsCount: districts.length || 8
+        year1TargetPercentage: Math.max(0.1, parseFloat(year1TargetPercentage)),
+        districtsCount: districts.length || 8,
+        cardStatusBreakdown,
+        partnerCategoryBreakdown,
+        districtEnrollmentData
       };
     } catch (e) {
       return this.getAdminStats();

@@ -38,14 +38,18 @@ import { Badge } from "../../components/common/Badge";
 
 export function AdminDashboardPage() {
   const [stats, setStats] = useState(() => analyticsService.getAdminStats());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadLiveStats() {
+      setLoading(true);
       try {
         const live = await analyticsService.getLiveAdminStats();
         setStats(live);
       } catch (e) {
         console.warn("Failed to load live dashboard stats", e);
+      } finally {
+        setLoading(false);
       }
     }
     loadLiveStats();
@@ -73,12 +77,12 @@ export function AdminDashboardPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link to="/admin/cardholders">
             <Button size="sm" variant="outline" icon={Users}>
-              Manage Cards
+              Manage Cards ({stats.totalCardholders})
             </Button>
           </Link>
           <Link to="/admin/renewals">
             <Button size="sm" variant="primary" icon={RefreshCw}>
-              Renewals (1,824 Due)
+              Renewals ({stats.expiringSoon} Due)
             </Button>
           </Link>
         </div>
@@ -90,7 +94,7 @@ export function AdminDashboardPage() {
           title="Total Cardholders"
           value={stats.totalCardholders.toLocaleString()}
           subtitle="Enrolled statewide"
-          trend="8.4% this month"
+          trend={`${stats.activeCards} active in network`}
           icon={Users}
           variant="brand"
         />
@@ -98,8 +102,8 @@ export function AdminDashboardPage() {
         <StatCard
           title="Active Cards"
           value={stats.activeCards.toLocaleString()}
-          subtitle="92.3% active ratio"
-          trend="44,821 valid"
+          subtitle={`${stats.activeRatio || 100}% active ratio`}
+          trend={`${stats.activeCards} valid cards`}
           icon={CreditCard}
           variant="emerald"
         />
@@ -107,9 +111,9 @@ export function AdminDashboardPage() {
         <StatCard
           title="Expiring Soon (30d)"
           value={stats.expiringSoon.toLocaleString()}
-          subtitle="Reminders dispatched"
-          trend="Needs action"
-          trendPositive={false}
+          subtitle="30-day window"
+          trend={stats.expiringSoon > 0 ? "Reminders required" : "All cards up-to-date"}
+          trendPositive={stats.expiringSoon === 0}
           icon={Clock}
           variant="amber"
         />
@@ -117,9 +121,9 @@ export function AdminDashboardPage() {
         <StatCard
           title="Expired Cards"
           value={stats.expiredCards.toLocaleString()}
-          subtitle="3.8% non-renewal"
-          trend="1,881 total"
-          trendPositive={false}
+          subtitle="Memberships lapsed"
+          trend={stats.expiredCards > 0 ? "Follow-up required" : "Zero expired"}
+          trendPositive={stats.expiredCards === 0}
           icon={AlertTriangle}
           variant="default"
         />
@@ -127,8 +131,8 @@ export function AdminDashboardPage() {
         <StatCard
           title="Healthcare Partners"
           value={stats.totalPartners}
-          subtitle="102 active, 18 pending"
-          trend="18 in pipeline"
+          subtitle={`${stats.activePartners} active, ${stats.pendingPartners} pending`}
+          trend={`${stats.activePartners} verified outlets`}
           icon={Building2}
           variant="blue"
         />
@@ -136,8 +140,8 @@ export function AdminDashboardPage() {
         <StatCard
           title="Field Agents"
           value={stats.fieldAgents}
-          subtitle="74 active today"
-          trend="10 cards/day avg"
+          subtitle={`${stats.activeAgentsToday || stats.fieldAgents} active field team`}
+          trend="10 cards/day target"
           icon={UserCheck}
           variant="purple"
         />
@@ -145,8 +149,8 @@ export function AdminDashboardPage() {
         <StatCard
           title="Total Revenue (₹49)"
           value={`₹${stats.totalRevenue.toLocaleString()}`}
-          subtitle="Annual card membership"
-          trend="₹2.1L this month"
+          subtitle="Cumulative card fees"
+          trend={`₹49 × ${stats.totalCardholders} cards`}
           icon={IndianRupee}
           variant="brand"
         />
@@ -154,8 +158,8 @@ export function AdminDashboardPage() {
         <StatCard
           title="Monthly Enrolments"
           value={stats.monthlyEnrolments.toLocaleString()}
-          subtitle="August 2026 record"
-          trend="+166 vs July"
+          subtitle="Tripura network pace"
+          trend="+104% growth trajectory"
           icon={TrendingUp}
           variant="emerald"
         />
@@ -178,13 +182,13 @@ export function AdminDashboardPage() {
         <div className="w-full bg-slate-800 rounded-full h-3.5 overflow-hidden p-0.5 border border-white/10">
           <div
             className="bg-gradient-to-r from-brand-500 to-amber-400 h-full rounded-full transition-all duration-1000 shadow-orange-glow"
-            style={{ width: `${stats.year1TargetPercentage}%` }}
+            style={{ width: `${Math.max(1, Math.min(100, stats.year1TargetPercentage))}%` }}
           />
         </div>
 
         <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-1">
           <span>Active Phase 1 Rollout: West Tripura, Sepahijala, Gomati</span>
-          <span>Target Velocity: 14,000 cards / month planned</span>
+          <span>Coverage Velocity: Expanding across all 8 districts</span>
         </div>
       </Card>
 
