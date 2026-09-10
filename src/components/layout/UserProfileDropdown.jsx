@@ -361,6 +361,7 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
               </div>
               <span className="text-[10px] text-rose-400">Exit</span>
             </button>
+            
           </div>
         </div>
       )}
