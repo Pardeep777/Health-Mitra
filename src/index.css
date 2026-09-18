@@ -37,7 +37,12 @@
   animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Print styling for ID Card */
+/* Default hidden state for background print receipt area on web screen */
+#printable-receipt-area {
+  display: none;
+}
+
+/* Print styling for ID Card and Partner Receipts */
 @media print {
   html, body {
     background: white !important;
@@ -48,11 +53,29 @@
   body * {
     visibility: hidden !important;
   }
-  #printable-card-area, #printable-card-area * {
+  #printable-card-area, #printable-card-area *,
+  #printable-receipt-area, #printable-receipt-area *,
+  .printable-area, .printable-area * {
     visibility: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+  }
+  #printable-receipt-area {
+    position: fixed !important;
+    left: 50% !important;
+    top: 20px !important;
+    transform: translateX(-50%) !important;
+    width: 100% !important;
+    max-width: 580px !important;
+    margin: 0 auto !important;
+    padding: 24px !important;
+    background: white !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    z-index: 99999 !important;
+    display: block !important;
   }
   #printable-card-area {
     position: fixed !important;

@@ -217,8 +217,135 @@ export function PartnerVerifyPage() {
     }
   };
 
+  const handlePrintReceipt = () => {
+    if (!redemptionSuccess) return;
+
+    // Direct window.print() leveraging index.css #printable-receipt-area rule
+    try {
+      window.print();
+    } catch (e) {
+      console.warn("window.print failed, trying popup fallback", e);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto py-2">
+      {/* Printable Receipt DOM Component (Hidden on screen, only visible during window.print()) */}
+      {redemptionSuccess && (
+        <div id="printable-receipt-area" className="hidden print:block">
+          {/* Header */}
+          <div style={{ textAlign: "center", borderBottom: "2px dashed #94a3b8", paddingBottom: "14px", marginBottom: "14px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", letterSpacing: "-0.5px", margin: "0 0 2px 0" }}>
+              HEALTH MITRA
+            </h2>
+            <p style={{ fontSize: "11px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 4px 0" }}>
+              Healthcare Partner Discount Receipt
+            </p>
+            <p style={{ fontSize: "12px", fontWeight: "bold", color: "#1e293b", margin: "0" }}>
+              {currentUser?.partner_name || currentUser?.business_name || "Healthcare Partner Outlet"}
+            </p>
+            <p style={{ fontSize: "10px", color: "#64748b", margin: "2px 0 0 0" }}>
+              {currentUser?.address || "Tripura, India"} {currentUser?.phone || currentUser?.mobile ? `| Ph: ${currentUser.phone || currentUser.mobile}` : ""}
+            </p>
+          </div>
+
+          {/* Receipt Info Grid */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginBottom: "14px", background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+            <div>
+              <span style={{ color: "#64748b", fontSize: "10px", display: "block" }}>RECEIPT NUMBER:</span>
+              <strong style={{ fontFamily: "monospace", color: "#ea580c", fontSize: "12px" }}>
+                {redemptionSuccess.receipt_number || redemptionSuccess.receipt_no}
+              </strong>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <span style={{ color: "#64748b", fontSize: "10px", display: "block" }}>DATE & TIME:</span>
+              <strong style={{ color: "#0f172a" }}>
+                {redemptionSuccess.timestamp || new Date().toLocaleString()}
+              </strong>
+            </div>
+          </div>
+
+          {/* Patient Details */}
+          <div style={{ marginBottom: "14px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px" }}>
+            <h4 style={{ fontSize: "10px", fontWeight: "800", textTransform: "uppercase", color: "#475569", marginBottom: "6px", letterSpacing: "0.5px" }}>
+              Patient / Cardholder Details
+            </h4>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+              <div>
+                <span style={{ color: "#64748b" }}>Patient Name: </span>
+                <strong style={{ color: "#0f172a", textTransform: "capitalize" }}>
+                  {redemptionSuccess.cardholder_name || verifiedResult?.full_name || verifiedResult?.cardholder_name}
+                </strong>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ color: "#64748b" }}>Card ID: </span>
+                <strong style={{ fontFamily: "monospace", color: "#ea580c" }}>
+                  {redemptionSuccess.unique_id || verifiedResult?.unique_id}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Service / Financial Breakdown */}
+          <div style={{ marginBottom: "14px" }}>
+            <h4 style={{ fontSize: "10px", fontWeight: "800", textTransform: "uppercase", color: "#475569", marginBottom: "6px", letterSpacing: "0.5px" }}>
+              Service & Billing Breakdown
+            </h4>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+              <thead>
+                <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
+                  <th style={{ padding: "6px 8px", color: "#334155" }}>Service Description</th>
+                  <th style={{ padding: "6px 8px", textAlign: "right", color: "#334155" }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "6px 8px", color: "#1e293b", fontWeight: "600" }}>
+                    {redemptionSuccess.service_name || selectedCategory}
+                  </td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#1e293b", fontWeight: "bold" }}>
+                    ₹{redemptionSuccess.bill_amount}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9", color: "#059669" }}>
+                  <td style={{ padding: "6px 8px", fontWeight: "bold" }}>
+                    Health Mitra Discount ({redemptionSuccess.discount_percent}%)
+                  </td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: "bold" }}>
+                    - ₹{redemptionSuccess.discount_amount}
+                  </td>
+                </tr>
+                <tr style={{ background: "#f8fafc", borderTop: "2px solid #0f172a" }}>
+                  <td style={{ padding: "8px", fontSize: "12px", fontWeight: "900", color: "#0f172a" }}>
+                    NET COLLECTED (Customer Pays)
+                  </td>
+                  <td style={{ padding: "8px", textAlign: "right", fontSize: "13px", fontWeight: "900", color: "#ea580c" }}>
+                    ₹{redemptionSuccess.final_amount}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Savings Highlight Badge */}
+          <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "8px", borderRadius: "8px", textAlign: "center", fontSize: "11px", color: "#065f46", fontWeight: "bold", marginBottom: "16px" }}>
+            ✨ Patient saved ₹{redemptionSuccess.discount_amount} on this healthcare bill!
+          </div>
+
+          {/* Signatures & Footer */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingTop: "14px", borderTop: "1px dashed #cbd5e1", fontSize: "9px", color: "#64748b" }}>
+            <div>
+              <p style={{ margin: "0" }}>Verified by: Health Mitra Partner Network</p>
+              <p style={{ margin: "2px 0 0 0" }}>Helpline: support@healthmitra.in</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ borderBottom: "1px solid #94a3b8", width: "130px", marginBottom: "3px" }}></div>
+              <span>Authorized Signature / Stamp</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-navy-900 tracking-tight">
@@ -229,7 +356,7 @@ export function PartnerVerifyPage() {
         </p>
       </div>
 
-      {/* Input Search Card matching Screenshot 2 */}
+      {/* Input Search Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
         <form onSubmit={handleVerify} className="space-y-3">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -238,7 +365,7 @@ export function PartnerVerifyPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
-              placeholder="e.g. HMC-7F38A21"
+              placeholder="e.g. HMC1555E145 or HMC-7F38A21"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl text-sm font-mono font-bold text-navy-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
@@ -269,7 +396,7 @@ export function PartnerVerifyPage() {
         </form>
       </div>
 
-      {/* Verification Result Card matching Screenshot 2 */}
+      {/* Verification Result Card */}
       {verifiedResult && (
         <div className="bg-white rounded-3xl border-2 border-emerald-400 p-6 sm:p-8 shadow-sm space-y-6 animate-scaleUp">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -341,7 +468,7 @@ export function PartnerVerifyPage() {
         </div>
       )}
 
-      {/* Record Healthcare Discount Bill Modal matching Screenshot 1 */}
+      {/* Record Healthcare Discount Bill Modal */}
       <Modal
         isOpen={discountModalOpen}
         onClose={() => setDiscountModalOpen(false)}
@@ -351,7 +478,7 @@ export function PartnerVerifyPage() {
       >
         {!redemptionSuccess ? (
           <div className="space-y-4 pt-1">
-            {/* 1. Category Dropdown loaded dynamically */}
+            {/* 1. Category Dropdown */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Healthcare Service Category
@@ -369,7 +496,7 @@ export function PartnerVerifyPage() {
               </select>
             </div>
 
-            {/* 2. Amount & Discount Inputs matching Screenshot 1 */}
+            {/* 2. Amount & Discount Inputs */}
             <div className="grid grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -401,7 +528,7 @@ export function PartnerVerifyPage() {
               </div>
             </div>
 
-            {/* 3. Calculations Breakdown Box matching Screenshot 1 */}
+            {/* 3. Calculations Breakdown Box */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Original Bill Total:</span>
@@ -417,7 +544,7 @@ export function PartnerVerifyPage() {
               </div>
             </div>
 
-            {/* 4. Action Buttons matching Screenshot 1 */}
+            {/* 4. Action Buttons */}
             <div className="pt-2 flex justify-end gap-2.5">
               <Button
                 type="button"
@@ -479,10 +606,7 @@ export function PartnerVerifyPage() {
               <Button
                 size="sm"
                 icon={Printer}
-                onClick={() => {
-                  window.print();
-                  showToast("Print dialog opened for discount receipt!", "info");
-                }}
+                onClick={handlePrintReceipt}
               >
                 Print Receipt
               </Button>

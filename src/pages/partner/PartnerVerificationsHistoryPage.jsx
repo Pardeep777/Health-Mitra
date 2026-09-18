@@ -321,47 +321,21 @@ export function PartnerVerificationsHistoryPage() {
             />
           </div>
 
-          {/* Quick Test Chips for user's requested test cases */}
-          <div className="flex items-center gap-1.5 ml-auto flex-wrap">
-            <span className="text-[11px] text-slate-400 font-medium">Quick API Tests:</span>
+          {(dateFrom || dateTo || searchTerm) && (
             <button
               type="button"
               onClick={() => {
-                setSearchTerm("Rahul Singha");
+                setDateFrom("");
+                setDateTo("");
+                setSearchTerm("");
+                setSelectedQuickRange("all");
                 setCurrentPage(1);
               }}
-              className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-orange-50 text-brand-600 border border-orange-200 hover:bg-orange-100 transition cursor-pointer"
+              className="text-xs text-brand-600 font-bold hover:underline ml-auto"
             >
-              ?search=Rahul Singha
+              Clear Filters
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDateFrom("2026-09-01");
-                setDateTo("2026-09-02");
-                setSelectedQuickRange("custom");
-                setCurrentPage(1);
-              }}
-              className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
-            >
-              ?date_from=2026-09-01&date_to=2026-09-02
-            </button>
-            {(dateFrom || dateTo || searchTerm) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDateFrom("");
-                  setDateTo("");
-                  setSearchTerm("");
-                  setSelectedQuickRange("all");
-                  setCurrentPage(1);
-                }}
-                className="text-xs text-brand-600 font-bold hover:underline"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
