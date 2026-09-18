@@ -14,7 +14,11 @@ import {
   Phone,
   Mail,
   IndianRupee,
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
+  Layers,
+  ArrowUpRight,
+  Filter
 } from "lucide-react";
 import { agentService } from "../../services/agentService";
 import { districtService } from "../../services/districtService";
@@ -28,11 +32,16 @@ import { Select } from "../../components/common/Select";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AdminAgentsPage() {
+  const [activeTab, setActiveTab] = useState("directory"); // directory, commissions, targets
+  const [statusTab, setStatusTab] = useState("all"); // all, active, inactive, blocked
   const [agents, setAgents] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("All");
+  const [selectedTargetStatus, setSelectedTargetStatus] = useState("All");
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
@@ -41,8 +50,13 @@ export function AdminAgentsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [targetModalOpen, setTargetModalOpen] = useState(false);
+
   const [agentToEdit, setAgentToEdit] = useState(null);
   const [agentToDelete, setAgentToDelete] = useState(null);
+  const [agentForPayout, setAgentForPayout] = useState(null);
+  const [agentForTarget, setAgentForTarget] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
   // Add Form
@@ -57,17 +71,34 @@ export function AdminAgentsPage() {
     password: "agentpassword123"
   });
 
+  // Payout Form
+  const [payoutForm, setPayoutForm] = useState({
+    payment_mode: "bank_transfer",
+    transaction_reference: "",
+    notes: "Commission clearance",
+    card_id: ""
+  });
+
+  // Target Form
+  const [targetForm, setTargetForm] = useState({
+    target_daily: "10"
+  });
+
   const { showToast } = useNotifications();
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [agentData, districtData] = await Promise.all([
-        agentService.getAll(),
-        districtService.getAll()
+      const [agentData, districtData, commData, targetData] = await Promise.all([
+        statusTab === "all" ? agentService.getAll() : agentService.getByStatusTab(statusTab),
+        districtService.getAll().catch(() => []),
+        agentService.getCommissions().catch(() => []),
+        agentService.getTargets().catch(() => [])
       ]);
-      setAgents(agentData);
-      setDistricts(districtData);
+      setAgents(agentData || []);
+      setDistricts(districtData || []);
+      setCommissions(Array.isArray(commData) ? commData : []);
+      setTargets(Array.isArray(targetData) ? targetData : []);
     } catch (err) {
       showToast("Error loading agents data.", "error");
     } finally {
@@ -77,7 +108,7 @@ export function AdminAgentsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [statusTab]);
 
   const handleAddAgent = async (e) => {
     e.preventDefault();
@@ -149,6 +180,59 @@ export function AdminAgentsPage() {
     }
   };
 
+  const handleClearCommission = async (e) => {
+    e.preventDefault();
+    if (!agentForPayout) return;
+    setFormLoading(true);
+    try {
+      if (payoutForm.card_id) {
+        await agentService.payoutSingleCard({
+          id: agentForPayout.id,
+          card_id: payoutForm.card_id,
+          payment_mode: payoutForm.payment_mode,
+          transaction_reference: payoutForm.transaction_reference
+        });
+        showToast("Single card commission cleared!", "success");
+      } else {
+        await agentService.clearPendingCommission({
+          id: agentForPayout.id,
+          payment_mode: payoutForm.payment_mode,
+          transaction_reference: payoutForm.transaction_reference,
+          notes: payoutForm.notes
+        });
+        showToast(`Full pending commission cleared for ${agentForPayout.name}!`, "success");
+      }
+      setPayoutModalOpen(false);
+      setAgentForPayout(null);
+      setPayoutForm({ payment_mode: "bank_transfer", transaction_reference: "", notes: "", card_id: "" });
+      loadData();
+    } catch (err) {
+      showToast(err.message || "Payout clearance failed.", "error");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleUpdateTarget = async (e) => {
+    e.preventDefault();
+    if (!agentForTarget) return;
+    setFormLoading(true);
+    try {
+      await agentService.updateTarget({
+        id: agentForTarget.id,
+        target_daily: targetForm.target_daily
+      });
+      showToast(`Daily target for ${agentForTarget.name} updated to ${targetForm.target_daily}!`, "success");
+      setTargetModalOpen(false);
+      setAgentForTarget(null);
+      loadData();
+    } catch (err) {
+      showToast(err.message || "Target update failed.", "error");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const filteredAgents = useMemo(() => {
     return agents.filter((a) => {
       const matchSearch =
@@ -160,12 +244,12 @@ export function AdminAgentsPage() {
     });
   }, [agents, searchTerm, selectedDistrict]);
 
-  const paginatedData = useMemo(() => {
+  const paginatedAgents = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredAgents.slice(start, start + pageSize);
   }, [filteredAgents, currentPage]);
 
-  const columns = [
+  const directoryColumns = [
     {
       header: "Agent Name & Code",
       key: "name",
@@ -210,16 +294,31 @@ export function AdminAgentsPage() {
       )
     },
     {
-      header: "Performance",
-      key: "performance",
-      render: (row) => {
-        const variants = {
-          Excellent: "success",
-          "On Track": "brand",
-          "Needs Attention": "warning"
-        };
-        return <Badge variant={variants[row.performance] || "default"}>{row.performance}</Badge>;
-      }
+      header: "Commission",
+      key: "total_commission_earned",
+      render: (row) => (
+        <div className="text-xs">
+          <p className="font-extrabold text-brand-600">₹{row.total_commission_earned || row.today_cards * 10}</p>
+          <button
+            onClick={() => {
+              setAgentForPayout(row);
+              setPayoutModalOpen(true);
+            }}
+            className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold underline"
+          >
+            Clear Payout
+          </button>
+        </div>
+      )
+    },
+    {
+      header: "Status",
+      key: "status",
+      render: (row) => (
+        <Badge variant={row.status?.toLowerCase() === "active" ? "success" : row.status?.toLowerCase() === "blocked" ? "danger" : "default"}>
+          {row.status}
+        </Badge>
+      )
     },
     {
       header: "Actions",
@@ -233,6 +332,17 @@ export function AdminAgentsPage() {
             title="View Details"
           >
             <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              setAgentForTarget(row);
+              setTargetForm({ target_daily: String(row.target_daily || 10) });
+              setTargetModalOpen(true);
+            }}
+            className="p-1.5 rounded-lg border border-slate-200 text-purple-600 hover:bg-purple-50 transition"
+            title="Update Target"
+          >
+            <Target className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => {
@@ -261,17 +371,19 @@ export function AdminAgentsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-navy-900">Field Enrolment Agents</h2>
+          <h2 className="text-xl font-bold text-navy-900">Field Enrolment Agents Management</h2>
           <p className="text-xs text-slate-500">
-            Real-time API endpoints: /api/admin/agents/list, add, edit, delete, commission, targets
+            Real-time API endpoints: /api/admin/agents/list, add, edit, delete, status, commission, targets
           </p>
         </div>
-        <Button size="sm" onClick={() => setAddModalOpen(true)} icon={Plus}>
-          + Add New Agent
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setAddModalOpen(true)} icon={Plus}>
+            + Add New Agent
+          </Button>
+        </div>
       </div>
 
       {/* KPI Stats */}
@@ -282,45 +394,218 @@ export function AdminAgentsPage() {
         <StatCard title="Commission Rate" value="₹10 / Card" subtitle="Automated payout" variant="blue" />
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-card flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search agent name, code, or mobile..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-2 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
-
-        <select
-          value={selectedDistrict}
-          onChange={(e) => setSelectedDistrict(e.target.value)}
-          className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 w-full sm:w-auto"
+      {/* Main Feature Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveTab("directory")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeTab === "directory" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
         >
-          <option value="All">All Districts</option>
-          {districts.map((d) => (
-            <option key={d.id} value={d.name}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+          <UserCheck className="w-4 h-4" /> Agent Directory & KYC
+        </button>
+        <button
+          onClick={() => setActiveTab("commissions")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeTab === "commissions" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <IndianRupee className="w-4 h-4" /> Commission & Payouts (/commission)
+        </button>
+        <button
+          onClick={() => setActiveTab("targets")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeTab === "targets" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Target className="w-4 h-4" /> Targets & Performance (/targets)
+        </button>
       </div>
 
-      {/* Agents Table */}
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        loading={loading}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        totalItems={filteredAgents.length}
-        onPageChange={setCurrentPage}
-      />
+      {/* Directory Tab View */}
+      {activeTab === "directory" && (
+        <div className="space-y-4">
+          {/* Status Tab Pills & Search */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-card flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search agent name, code, or mobile..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-2 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
 
-      {/* Add Agent Modal */}
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                {["all", "active", "inactive", "blocked"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusTab(tab)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition ${
+                      statusTab === tab ? "bg-white text-brand-600 shadow-sm font-bold" : "text-slate-600"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
+              >
+                <option value="All">All Districts</option>
+                {districts.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Table */}
+          <DataTable
+            columns={directoryColumns}
+            data={paginatedAgents}
+            loading={loading}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredAgents.length}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
+
+      {/* Commissions Tab View */}
+      {activeTab === "commissions" && (
+        <div className="space-y-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <IndianRupee className="w-5 h-5 text-emerald-700" />
+              <div>
+                <h4 className="font-bold text-xs text-emerald-950">Automated Agent Commission Ledger (₹10 / Valid Enrolment)</h4>
+                <p className="text-[11px] text-emerald-800">Clear full pending payouts or individual card payouts via UPI / Bank Transfer.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {agents.map((a) => {
+              const pending = a.pending_commission || (a.today_cards * 10);
+              return (
+                <div key={a.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-card flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={a.avatar} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200" />
+                      <div>
+                        <h5 className="font-bold text-sm text-navy-900 leading-snug">{a.name}</h5>
+                        <p className="text-[11px] text-brand-600 font-mono">{a.agent_code} • {a.district}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Pending Payout</span>
+                      <p className="text-lg font-extrabold text-emerald-700">₹{pending}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Total Lifetime</span>
+                      <p className="text-lg font-extrabold text-navy-900">₹{a.total_commission_earned || a.total_cards * 10}</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    onClick={() => {
+                      setAgentForPayout(a);
+                      setPayoutModalOpen(true);
+                    }}
+                  >
+                    Clear Payout (₹{pending})
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Targets Tab View */}
+      {activeTab === "targets" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <StatCard title="Target Achieved" value={agents.filter((a) => a.today_cards >= a.target_daily).length} subtitle="≥ 10 cards today" variant="emerald" />
+            <StatCard title="On Track" value={agents.filter((a) => a.today_cards >= 5 && a.today_cards < a.target_daily).length} subtitle="5-9 cards today" variant="brand" />
+            <StatCard title="In Progress" value={agents.filter((a) => a.today_cards > 0 && a.today_cards < 5).length} subtitle="1-4 cards today" variant="purple" />
+            <StatCard title="Not Started" value={agents.filter((a) => a.today_cards === 0).length} subtitle="0 cards logged" variant="default" />
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h4 className="font-bold text-sm text-navy-900">Agent Performance & Daily Targets Tracker</h4>
+              <p className="text-xs text-slate-400">Endpoint: /api/admin/agents/targets</p>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {agents.map((a) => {
+                const progress = Math.min(100, Math.round((a.today_cards / (a.target_daily || 10)) * 100));
+                const statusLabel = a.today_cards >= a.target_daily ? "Achieved" : a.today_cards >= 5 ? "On Track" : a.today_cards > 0 ? "In Progress" : "Not Started";
+                return (
+                  <div key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                    <div className="flex items-center gap-3">
+                      <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover" />
+                      <div>
+                        <p className="font-bold text-navy-900 text-sm">{a.name} ({a.agent_code})</p>
+                        <p className="text-slate-500">{a.district} • Daily Target: <strong>{a.target_daily} Cards</strong></p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="w-36 space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold">
+                          <span>{a.today_cards} / {a.target_daily}</span>
+                          <span className="text-brand-600">{progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${progress >= 100 ? "bg-emerald-500" : progress >= 50 ? "bg-brand-500" : "bg-amber-500"}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <Badge variant={statusLabel === "Achieved" ? "success" : statusLabel === "On Track" ? "brand" : "warning"}>
+                        {statusLabel}
+                      </Badge>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setAgentForTarget(a);
+                          setTargetForm({ target_daily: String(a.target_daily || 10) });
+                          setTargetModalOpen(true);
+                        }}
+                      >
+                        Adjust Target
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {/* 1. Add Agent Modal */}
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
@@ -338,7 +623,7 @@ export function AdminAgentsPage() {
               required
             />
             <Input
-              label="Mobile Number (10-digit) *"
+              label="Mobile Number (10 digits) *"
               placeholder="e.g. 9876543210"
               maxLength={10}
               value={newAgent.mobile}
@@ -350,8 +635,8 @@ export function AdminAgentsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="Email Address"
+              placeholder="e.g. rajesh@example.com"
               type="email"
-              placeholder="e.g. agent@example.com"
               value={newAgent.email}
               onChange={(e) => setNewAgent({ ...newAgent, email: e.target.value })}
             />
@@ -366,10 +651,12 @@ export function AdminAgentsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
-              label="Daily Target (Cards)"
+              label="Daily Target (Cards / Day) *"
               type="number"
+              min="1"
               value={newAgent.target_daily}
               onChange={(e) => setNewAgent({ ...newAgent, target_daily: e.target.value })}
+              required
             />
             <Input
               label="Joining Date"
@@ -390,7 +677,87 @@ export function AdminAgentsPage() {
         </form>
       </Modal>
 
-      {/* Edit Agent Modal */}
+      {/* 2. Clear Commission Payout Modal */}
+      {agentForPayout && (
+        <Modal
+          isOpen={payoutModalOpen}
+          onClose={() => setPayoutModalOpen(false)}
+          title={`Process Payout: ${agentForPayout.name}`}
+          subtitle="POST /api/admin/agents/commission"
+        >
+          <form onSubmit={handleClearCommission} className="space-y-4 text-xs">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+              <p className="font-bold text-navy-900">{agentForPayout.name} ({agentForPayout.agent_code})</p>
+              <p className="text-slate-500">Contact: {agentForPayout.mobile} • District: {agentForPayout.district}</p>
+            </div>
+
+            <Select
+              label="Payment Mode *"
+              options={[
+                { label: "Bank NEFT / IMPS Transfer", value: "bank_transfer" },
+                { label: "UPI Direct Payout (GPay/PhonePe)", value: "upi" },
+                { label: "Cash Handover Desk", value: "cash" }
+              ]}
+              value={payoutForm.payment_mode}
+              onChange={(e) => setPayoutForm({ ...payoutForm, payment_mode: e.target.value })}
+            />
+
+            <Input
+              label="Transaction UTR / Reference ID"
+              placeholder="e.g. UTR1234567890"
+              value={payoutForm.transaction_reference}
+              onChange={(e) => setPayoutForm({ ...payoutForm, transaction_reference: e.target.value })}
+            />
+
+            <Input
+              label="Specific Card ID (Optional - Leave blank for full pending balance)"
+              placeholder="e.g. HMC-12345"
+              value={payoutForm.card_id}
+              onChange={(e) => setPayoutForm({ ...payoutForm, card_id: e.target.value })}
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button variant="outline" type="button" onClick={() => setPayoutModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={formLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                Confirm Payout Clearance
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* 3. Update Target Modal */}
+      {agentForTarget && (
+        <Modal
+          isOpen={targetModalOpen}
+          onClose={() => setTargetModalOpen(false)}
+          title={`Update Daily Target: ${agentForTarget.name}`}
+          subtitle="POST /api/admin/agents/targets"
+        >
+          <form onSubmit={handleUpdateTarget} className="space-y-4 text-xs">
+            <Input
+              label="New Daily Target (Cards / Day) *"
+              type="number"
+              min="1"
+              value={targetForm.target_daily}
+              onChange={(e) => setTargetForm({ target_daily: e.target.value })}
+              required
+            />
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button variant="outline" type="button" onClick={() => setTargetModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={formLoading}>
+                Save Target
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* 4. Edit Modal */}
       {agentToEdit && (
         <Modal
           isOpen={editModalOpen}
@@ -442,7 +809,8 @@ export function AdminAgentsPage() {
                 label="Status"
                 options={[
                   { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" }
+                  { label: "Inactive", value: "inactive" },
+                  { label: "Blocked", value: "blocked" }
                 ]}
                 value={agentToEdit.status?.toLowerCase() || "active"}
                 onChange={(e) => setAgentToEdit({ ...agentToEdit, status: e.target.value })}
@@ -461,7 +829,7 @@ export function AdminAgentsPage() {
         </Modal>
       )}
 
-      {/* Delete Agent Modal */}
+      {/* 5. Delete Modal */}
       {agentToDelete && (
         <Modal
           isOpen={deleteModalOpen}
@@ -485,13 +853,13 @@ export function AdminAgentsPage() {
         </Modal>
       )}
 
-      {/* Agent Detail Modal */}
+      {/* 6. View Profile Modal */}
       {selectedAgent && (
         <Modal
           isOpen={!!selectedAgent}
           onClose={() => setSelectedAgent(null)}
-          title={`Agent: ${selectedAgent.name}`}
-          subtitle={`Agent ID: ${selectedAgent.agent_code} • ${selectedAgent.district}`}
+          title={`Agent Profile: ${selectedAgent.name}`}
+          subtitle={`ID: ${selectedAgent.agent_code} • ${selectedAgent.district}`}
           maxWidth="max-w-xl"
         >
           <div className="space-y-6 text-xs">
@@ -521,13 +889,6 @@ export function AdminAgentsPage() {
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-slate-100 pt-4">
-              <h5 className="font-bold text-navy-900">Operational Target Tracking</h5>
-              <p className="text-slate-600 leading-relaxed">
-                Field agents receive a daily objective of <strong>10 new card registrations</strong>. Rajesh Kumar and Sunita Debnath currently lead daily conversion rates in West Tripura.
-              </p>
-            </div>
-
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedAgent(null)}>
                 Close
@@ -544,4 +905,3 @@ export function AdminAgentsPage() {
     </div>
   );
 }
-

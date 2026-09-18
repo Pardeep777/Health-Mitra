@@ -2,11 +2,11 @@ import { api } from "./api";
 
 let districtCache = null;
 let lastDistrictFetchTime = 0;
-const DISTRICT_CACHE_TTL = 60000; // 60 seconds
+const DISTRICT_CACHE_TTL = 30000; // 30 seconds
 
 export const districtService = {
   /**
-   * Fetch all districts from backend API: GET /admin/districts/list
+   * Fetch all districts: GET /admin/districts/list
    */
   async getAll(forceRefresh = false) {
     const now = Date.now();
@@ -121,7 +121,7 @@ export const districtService = {
 
   /**
    * Get district rollout status: GET /admin/districts/rollout
-   * Query params: ?phase=phase_1 or ?id=1
+   * Query params: ?phase=phase_1 | phase_2 | phase_3 or ?id=1
    */
   async getRollout(params = {}) {
     try {

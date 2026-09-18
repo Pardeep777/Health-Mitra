@@ -21,7 +21,7 @@ import {
 import { cardholderService } from "../../services/cardholderService";
 import { verificationService } from "../../services/verificationService";
 import { HealthMitraCard } from "../../components/card/HealthMitraCard";
-import { PrintableCard } from "../../components/card/PrintableCard";
+import { PrintableCard, printCardDocument } from "../../components/card/PrintableCard";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Card } from "../../components/common/Card";
@@ -349,7 +349,7 @@ export function AdminCardholderDetailPage() {
           isOpen={printModalOpen}
           onClose={() => setPrintModalOpen(false)}
           title="Printable Enrollment Slip"
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-4xl"
         >
           <div className="space-y-4">
             <PrintableCard
@@ -361,11 +361,25 @@ export function AdminCardholderDetailPage() {
               district={cardholder.district}
               issueDate={cardholder.issue_date}
             />
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
               <Button variant="outline" size="sm" onClick={() => setPrintModalOpen(false)}>
                 Close
               </Button>
-              <Button size="sm" icon={Printer} onClick={() => window.print()}>
+              <Button
+                size="sm"
+                icon={Printer}
+                onClick={() =>
+                  printCardDocument({
+                    cardholderName: cardholder.full_name,
+                    uniqueId: cardholder.unique_id,
+                    publicToken: cardholder.public_token,
+                    validUntil: cardholder.expiry_date,
+                    status: cardholder.status,
+                    district: cardholder.district,
+                    issueDate: cardholder.issue_date
+                  })
+                }
+              >
                 Print Document
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ShieldCheck,
@@ -10,34 +10,36 @@ import {
   Sparkles,
   Calendar,
   User,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Clock
 } from "lucide-react";
-import { verificationService } from "../../services/verificationService";
+import { partnerService } from "../../services/partnerService";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
-import logoImg from "../../assets/logo.png";
 
 export function CardVerifyPage() {
-  const [cardInput, setCardInput] = useState("HMC-7F38A21");
+  const [cardInput, setCardInput] = useState("HMC72923966");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [simulatedCameraOpen, setSimulatedCameraOpen] = useState(false);
 
-  const handleVerify = async (e) => {
+  const handleVerify = async (e, customQuery) => {
     if (e) e.preventDefault();
-    if (!cardInput.trim()) return;
+    const target = (customQuery !== undefined ? customQuery : cardInput).trim();
+    if (!target) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const res = await verificationService.verifyCard(cardInput);
-      if (res.found) {
+      const res = await partnerService.verifyCard(target);
+      if (res.found && res.cardholder) {
         setResult(res.cardholder);
       } else {
-        setError(res.message);
+        setError(res.message || `Invalid Card! No active Health Mitra card found matching '${target}'.`);
       }
     } catch (err) {
       setError("An error occurred while verifying the card. Please check the ID and try again.");
@@ -46,15 +48,10 @@ export function CardVerifyPage() {
     }
   };
 
-  const handleSimulateQrScan = (token = "HM_PUBLIC_7F38A21_X92") => {
+  const handleSimulateQrScan = (token = "965b3db6e4b5597dc95e2f22181cf448") => {
     setCardInput(token);
     setSimulatedCameraOpen(false);
-    // Trigger verification directly
-    setTimeout(() => {
-      verificationService.verifyCard(token).then((res) => {
-        if (res.found) setResult(res.cardholder);
-      });
-    }, 100);
+    handleVerify(null, token);
   };
 
   return (
@@ -83,7 +80,7 @@ export function CardVerifyPage() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="e.g. HMC-7F38A21 or HM_PUBLIC_..."
+                placeholder="e.g. HMC72923966 or HMC40748811"
                 value={cardInput}
                 onChange={(e) => setCardInput(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-3 rounded-2xl text-sm font-mono font-bold text-navy-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
@@ -116,29 +113,42 @@ export function CardVerifyPage() {
           <button
             type="button"
             onClick={() => {
-              setCardInput("HMC-7F38A21");
+              setCardInput("HMC72923966");
+              handleVerify(null, "HMC72923966");
             }}
-            className="font-mono bg-slate-100 hover:bg-orange-50 hover:text-brand-600 px-2.5 py-1 rounded-lg border border-slate-200 font-bold transition"
+            className="font-mono bg-orange-50 text-brand-700 hover:bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-200 font-bold transition"
           >
-            HMC-7F38A21 (Active)
+            HMC72923966 (Rahul Singha)
           </button>
           <button
             type="button"
             onClick={() => {
-              setCardInput("HMC-2M44T89");
+              setCardInput("HMC40748811");
+              handleVerify(null, "HMC40748811");
             }}
-            className="font-mono bg-slate-100 hover:bg-amber-50 hover:text-amber-700 px-2.5 py-1 rounded-lg border border-slate-200 font-bold transition"
+            className="font-mono bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 px-2.5 py-1 rounded-lg border border-slate-200 font-bold transition"
           >
-            HMC-2M44T89 (Expiring Soon)
+            HMC40748811 (Sneha Majumder)
           </button>
           <button
             type="button"
             onClick={() => {
-              setCardInput("HMC-9P28X44");
+              setCardInput("HMC530E7E71");
+              handleVerify(null, "HMC530E7E71");
+            }}
+            className="font-mono bg-slate-100 hover:bg-blue-50 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 font-bold transition"
+          >
+            HMC530E7E71 (Sumit)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCardInput("HMC3EC2FB38");
+              handleVerify(null, "HMC3EC2FB38");
             }}
             className="font-mono bg-slate-100 hover:bg-rose-50 hover:text-rose-700 px-2.5 py-1 rounded-lg border border-slate-200 font-bold transition"
           >
-            HMC-9P28X44 (Expired)
+            HMC3EC2FB38 (Inactive)
           </button>
         </div>
       </div>
@@ -171,16 +181,16 @@ export function CardVerifyPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleSimulateQrScan("HM_PUBLIC_7F38A21_X92")}
+                onClick={() => handleSimulateQrScan("965b3db6e4b5597dc95e2f22181cf448")}
               >
-                Scan Rahul Sharma's QR
+                Scan Rahul Singha's QR
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleSimulateQrScan("HM_PUBLIC_4K91B72_A18")}
+                onClick={() => handleSimulateQrScan("742d42ad6bb01a1836055a7d0900d456")}
               >
-                Scan Priya Das's QR
+                Scan Sneha's QR
               </Button>
             </div>
           </div>
@@ -199,7 +209,7 @@ export function CardVerifyPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Verification Successful</span>
                 <h3 className="text-xl font-extrabold text-navy-900 flex items-center gap-2">
-                  ✓ Card Verified
+                  ✓ Valid Health Mitra Card
                 </h3>
               </div>
             </div>
@@ -207,14 +217,14 @@ export function CardVerifyPage() {
             <div className="flex items-center gap-2">
               <span
                 className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide ${
-                  result.status === "Active"
+                  result.status === "Active" || result.status === "active"
                     ? "bg-emerald-500 text-white shadow-sm"
                     : result.status === "Expiring Soon"
                     ? "bg-amber-500 text-white"
                     : "bg-rose-500 text-white"
                 }`}
               >
-                {result.status}
+                {result.status || "Active"}
               </span>
             </div>
           </div>
@@ -223,7 +233,7 @@ export function CardVerifyPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
             <div className="space-y-1">
               <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Cardholder Name</span>
-              <p className="text-lg font-bold text-navy-900 capitalize">{result.full_name}</p>
+              <p className="text-lg font-bold text-navy-900 capitalize">{result.cardholder_name || result.full_name}</p>
             </div>
 
             <div className="space-y-1">
@@ -232,13 +242,13 @@ export function CardVerifyPage() {
             </div>
 
             <div className="space-y-1">
-              <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Valid From</span>
-              <p className="text-sm font-semibold text-slate-700">{result.issue_date}</p>
+              <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">District</span>
+              <p className="text-sm font-semibold text-slate-700">{result.district || "Tripura"}</p>
             </div>
 
             <div className="space-y-1">
               <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Valid Until</span>
-              <p className="text-sm font-bold text-navy-900">{result.expiry_date}</p>
+              <p className="text-sm font-bold text-navy-900">{result.valid_until || result.expiry_date}</p>
             </div>
           </div>
 
@@ -246,7 +256,7 @@ export function CardVerifyPage() {
           <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5">
             <Sparkles className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
             <span className="leading-relaxed font-medium">
-              This card is <strong>valid and eligible for Health Mitra partner discounts</strong> (Up to 20% on diagnostic tests & medicines) across all network outlets in Tripura.
+              This card is <strong>valid and eligible for Health Mitra partner discounts</strong> ({result.discount_eligibility || `Up to ${result.max_discount_percent || 20}% OFF`}) across all network pharmacies, clinics and diagnostic labs in Tripura.
             </span>
           </div>
 
@@ -254,7 +264,7 @@ export function CardVerifyPage() {
           <div className="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-500 flex items-center gap-2 border border-slate-100">
             <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>
-              <strong>Privacy Protection:</strong> In compliance with DPDPA 2023, personal phone numbers, home addresses, and private medical histories are never displayed on public verification.
+              <strong>Privacy Protection:</strong> In compliance with DPDPA 2023, personal phone numbers, home addresses, and private medical histories are protected and never displayed on public verification.
             </span>
           </div>
         </div>

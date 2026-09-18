@@ -2,7 +2,7 @@ import { api } from "./api";
 
 export const cardholderService = {
   /**
-   * Fetch all cardholders from backend API: GET /admin/cardholders/list
+   * Fetch all cardholders: GET /admin/cardholders/list
    */
   async getAll() {
     const res = await api.get("/admin/cardholders/list");
@@ -38,26 +38,26 @@ export const cardholderService = {
 
   /**
    * Get single cardholder by ID or unique_id
-   * First tries search endpoint for specific keyword/ID to avoid downloading entire roster
    */
   async getById(id) {
     if (!id) return null;
     try {
       const searchRes = await api.get("/admin/cardholders/search", { keyword: String(id).trim() });
       if (searchRes.success && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
-        const found = searchRes.data.find(
-          (c) =>
-            String(c.id) === String(id) ||
-            String(c.unique_id) === String(id) ||
-            String(c.customer_code) === String(id)
-        ) || searchRes.data[0];
+        const found =
+          searchRes.data.find(
+            (c) =>
+              String(c.id) === String(id) ||
+              String(c.unique_id) === String(id) ||
+              String(c.customer_code) === String(id)
+          ) || searchRes.data[0];
         if (found) return normalizeCardholder(found);
       }
     } catch (e) {
       console.warn("Cardholder search API error", e);
     }
 
-    // Fallback if search didn't locate
+    // Fallback search across all
     const all = await this.getAll();
     return (
       all.find(
@@ -119,7 +119,20 @@ export const cardholderService = {
    * Edit cardholder: POST /admin/cardholders/edit
    */
   async update(cardholderData) {
-    const res = await api.post("/admin/cardholders/edit", cardholderData);
+    let payload = cardholderData;
+    if (cardholderData instanceof FormData) {
+      const res = await api.postFormData("/admin/cardholders/edit", cardholderData);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to update cardholder.");
+      }
+      return {
+        success: true,
+        data: res.data ? normalizeCardholder(res.data) : null,
+        message: res.message || "Cardholder updated successfully!"
+      };
+    }
+
+    const res = await api.post("/admin/cardholders/edit", payload);
     if (!res.success) {
       throw new Error(res.message || "Failed to update cardholder.");
     }
@@ -153,10 +166,10 @@ export const cardholderService = {
   },
 
   /**
-   * Get QR data: GET /admin/cards/qr_management?card_id=...
+   * Get QR data by card ID: GET /admin/cards/qr_management?card_id=1
    */
   async getCardQr(card_id) {
-    const res = await api.get("/admin/cards/qr_management", { card_id });
+    const res = await api.get("/admin/cards/qr_management", { card_id: Number(card_id) || card_id });
     return res;
   },
 
@@ -166,7 +179,7 @@ export const cardholderService = {
   async updateCardStatus(card_id, status) {
     const res = await api.post("/admin/cards/update_status", {
       card_id: Number(card_id) || card_id,
-      status
+      status: (status || "active").toLowerCase()
     });
     if (!res.success) {
       throw new Error(res.message || "Failed to update card status.");
@@ -205,36 +218,7 @@ export const cardholderService = {
   },
 
   /**
-   * Generates WhatsApp message and opens WhatsApp Web/App
-   */
-  shareOnWhatsApp(cardholder) {
-    if (!cardholder) return;
-    const name = cardholder.full_name || "Member";
-    const cardId = cardholder.unique_id || "HMC-MEMBER";
-    const validUntil = cardholder.expiry_date || "1 Year";
-    const publicToken = cardholder.public_token || cardholder.unique_id;
-    const verifyUrl = `${window.location.origin}/verify/${publicToken}`;
-
-    const text = `*Health Mitra — Smart Healthcare Pass*\n\n` +
-      `👤 *Member Name:* ${name}\n` +
-      `💳 *Card ID:* ${cardId}\n` +
-      `📅 *Valid Thru:* ${validUntil}\n` +
-      `🏥 *Benefits:* Up to 20% OFF on Diagnostic tests, 10-15% on Medicines at all partner pharmacies across Tripura.\n\n` +
-      `🔗 *Digital Verification QR Pass:* ${verifyUrl}\n\n` +
-      `_Health Mitra — Caring for Tripura's Healthcare_`;
-
-    const cleanMobile = (cardholder.mobile || "").replace(/\D/g, "");
-    let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    if (cleanMobile && cleanMobile.length === 10) {
-      waUrl = `https://api.whatsapp.com/send?phone=91${cleanMobile}&text=${encodeURIComponent(text)}`;
-    }
-
-    window.open(waUrl, "_blank", "noopener,noreferrer");
-    return true;
-  },
-
-  /**
-   * Re-generate Token: POST /admin/cards/qr_management
+   * Re-generate Card QR Token: POST /admin/cards/qr_management
    */
   async regenerateToken(card_id) {
     const res = await api.post("/admin/cards/qr_management", {
@@ -258,6 +242,36 @@ export const cardholderService = {
     return [];
   },
 
+  /**
+   * Generates WhatsApp share link
+   */
+  shareOnWhatsApp(cardholder) {
+    if (!cardholder) return;
+    const name = cardholder.full_name || "Member";
+    const cardId = cardholder.unique_id || "HMC-MEMBER";
+    const validUntil = cardholder.expiry_date || "1 Year";
+    const publicToken = cardholder.public_token || cardholder.unique_id;
+    const verifyUrl = `${window.location.origin}/verify/${publicToken}`;
+
+    const text =
+      `*Health Mitra — Smart Healthcare Pass*\n\n` +
+      `👤 *Member Name:* ${name}\n` +
+      `💳 *Card ID:* ${cardId}\n` +
+      `📅 *Valid Thru:* ${validUntil}\n` +
+      `🏥 *Benefits:* Up to 20% OFF on Diagnostic tests, 10-15% on Medicines at all partner pharmacies across Tripura.\n\n` +
+      `🔗 *Digital Verification QR Pass:* ${verifyUrl}\n\n` +
+      `_Health Mitra — Caring for Tripura's Healthcare_`;
+
+    const cleanMobile = (cardholder.mobile || "").replace(/\D/g, "");
+    let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    if (cleanMobile && cleanMobile.length === 10) {
+      waUrl = `https://api.whatsapp.com/send?phone=91${cleanMobile}&text=${encodeURIComponent(text)}`;
+    }
+
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    return true;
+  },
+
   async renew(unique_id) {
     return this.getByStatus("renewals");
   }
@@ -269,7 +283,6 @@ export const cardholderService = {
 function normalizeCardholder(item) {
   if (!item) return item;
 
-  // Resolve full valid photo URL from photo or photo_url
   let photo = "";
   if (item.photo_url && typeof item.photo_url === "string" && item.photo_url.trim()) {
     photo = item.photo_url.replace(/\\/g, "").trim();

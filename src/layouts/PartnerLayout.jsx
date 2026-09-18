@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { Toast } from "../components/common/Toast";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { UserProfileDropdown } from "../components/layout/UserProfileDropdown";
@@ -25,12 +25,16 @@ export function PartnerLayout() {
   const { unreadCount } = useNotifications();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  if (!currentUser || currentUser.role !== "partner") {
+    return <Navigate to="/login" replace />;
+  }
+
   const links = [
     { label: "Dashboard", path: "/partner", icon: LayoutDashboard, exact: true },
     { label: "Verify & Redeem", path: "/partner/verify", icon: ShieldCheck },
-    { label: "Redemptions", path: "/partner/verifications", icon: History },
-    { label: "Clinic Profile", path: "/partner/profile", icon: Store },
-    { label: "Services & Pricing", path: "/partner/services", icon: FileCheck2 }
+    { label: "Redemption History", path: "/partner/verifications", icon: History },
+    { label: "Business Profile", path: "/partner/profile", icon: Store },
+    { label: "Manage Services & Pricing", path: "/partner/services", icon: FileCheck2 }
   ];
 
   const isActive = (item) => {

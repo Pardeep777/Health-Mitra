@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { Toast } from "../components/common/Toast";
 import { UserProfileDropdown } from "../components/layout/UserProfileDropdown";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
@@ -10,6 +10,10 @@ import { CreditCard, RefreshCw, User, Sparkles } from "lucide-react";
 export function CardholderLayout() {
   const { currentUser } = useAuth();
   const location = useLocation();
+
+  if (!currentUser || currentUser.role !== "cardholder") {
+    return <Navigate to="/login" replace />;
+  }
 
   const links = [
     { label: "My Digital Card", path: "/cardholder/card", icon: CreditCard },

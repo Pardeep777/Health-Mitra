@@ -7,7 +7,7 @@
 export const API_BASE_URL = "https://cupan.getfreedeal.com/api";
 
 export const DEFAULT_ADMIN_TOKEN =
-  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MywibmFtZSI6ImFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJtb2JpbGUiOiI4ODg4ODg4ODg4Iiwicm9sZV9pZCI6MSwicm9sZV9uYW1lIjoiU3VwZXIgQWRtaW4iLCJyb2xlX3NsdWciOiJzdXBlcl9hZG1pbiIsImlhdCI6MTc4ODU5ODQ4MywiZXhwIjoxNzg5MjAzMjgzfQ.A1rYUmLCJtur13MbBUoj8_N2h_LNRTWtBwRfuBh9eqw";
+  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MywibmFtZSI6ImFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJtb2JpbGUiOiI4ODg4ODg4ODg4Iiwicm9sZV9pZCI6MSwicm9sZV9uYW1lIjoiU3VwZXIgQWRtaW4iLCJyb2xlX3NsdWciOiJzdXBlcl9hZG1pbiIsImlhdCI6MTc4OTU1ODYzMCwiZXhwIjoxNzkwMTYzNDMwfQ.eInXvct0bsnaDlBsiHi6MC4r-1RihYy22OKrd_dygSE";
 
 export function getAuthToken() {
   const token = localStorage.getItem("health_mitra_token");
@@ -17,33 +17,38 @@ export function getAuthToken() {
   if (user) {
     try {
       const parsed = JSON.parse(user);
-      if (parsed?.token) {
-        localStorage.setItem("health_mitra_token", parsed.token);
-        return parsed.token;
+      if (parsed?.token && parsed.token.trim()) {
+        localStorage.setItem("health_mitra_token", parsed.token.trim());
+        return parsed.token.trim();
       }
     } catch {}
   }
 
-  // Fallback to active valid token from system
-  localStorage.setItem("health_mitra_token", DEFAULT_ADMIN_TOKEN);
-  return DEFAULT_ADMIN_TOKEN;
+  return "";
 }
 
 export function setAuthToken(token) {
-  if (token) {
-    localStorage.setItem("health_mitra_token", token);
+  if (token && typeof token === "string" && token.trim()) {
+    localStorage.setItem("health_mitra_token", token.trim());
   } else {
-    localStorage.setItem("health_mitra_token", DEFAULT_ADMIN_TOKEN);
+    localStorage.removeItem("health_mitra_token");
   }
 }
 
 /**
- * Normalizes endpoint URL ensuring proper slash prefix
+ * Normalizes endpoint URL ensuring proper slash prefix and no .php suffix
  */
 export function normalizeEndpoint(endpoint) {
   if (!endpoint) return "";
-  if (endpoint.startsWith("http")) return endpoint;
-  return endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  let clean = endpoint.startsWith("http")
+    ? endpoint
+    : endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+
+  // Automatically remove .php or .php? from any endpoint
+  clean = clean.replace(/\.php(\?|$)/, "$1");
+  return clean;
 }
 
 async function request(endpoint, options = {}) {
@@ -56,7 +61,8 @@ async function request(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  if (token && !headers.Authorization) {
+  // Attach token in standard Authorization header
+  if (token && !headers.Authorization && !headers.authorization) {
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -87,51 +93,6 @@ async function request(endpoint, options = {}) {
 
     // Check HTTP status code
     if (!response.ok) {
-      // If 404 Not Found and URL doesn't have .php, attempt seamless fallback to .php
-      if (response.status === 404 && !url.includes(".php")) {
-        const phpUrl = url.includes("?") ? url.replace("?", ".php?") : `${url}.php`;
-        try {
-          const phpResponse = await fetch(phpUrl, { ...options, headers });
-          if (phpResponse.ok) {
-            let phpData;
-            const phpContentType = phpResponse.headers.get("content-type");
-            if (phpContentType && phpContentType.includes("application/json")) {
-              phpData = await phpResponse.json();
-            } else {
-              const phpText = await phpResponse.text();
-              try {
-                phpData = JSON.parse(phpText);
-              } catch {
-                phpData = { message: phpText };
-              }
-            }
-            if (
-              phpData &&
-              (phpData.status === false ||
-                phpData.status === 0 ||
-                phpData.status === "error" ||
-                phpData.success === false)
-            ) {
-              return {
-                success: false,
-                status: 400,
-                message: phpData.message || "Operation failed on server.",
-                data: null,
-                error: phpData
-              };
-            }
-            return {
-              success: true,
-              status: phpResponse.status,
-              message: phpData?.message || "Operation successful",
-              data: phpData?.data !== undefined ? phpData.data : phpData
-            };
-          }
-        } catch (fallbackErr) {
-          // Continue with original 404 error
-        }
-      }
-
       const errorMessage =
         data?.message || data?.error || `HTTP ${response.status}: ${response.statusText}`;
       return {
@@ -157,7 +118,10 @@ async function request(endpoint, options = {}) {
       success: true,
       status: response.status,
       message: data?.message || "Operation successful",
-      data: data?.data !== undefined ? data.data : data
+      token: data?.token || null,
+      token_type: data?.token_type || "Bearer",
+      data: data?.data !== undefined ? data.data : data,
+      raw: data
     };
   } catch (error) {
     console.warn(`[API Network Error] ${url}:`, error.message);
@@ -174,12 +138,7 @@ async function request(endpoint, options = {}) {
 export const api = {
   get(endpoint, queryParams = {}) {
     let url = normalizeEndpoint(endpoint);
-    const token = getAuthToken();
     const params = new URLSearchParams();
-
-    if (token && !queryParams.token) {
-      params.append("token", token);
-    }
 
     Object.entries(queryParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
@@ -196,19 +155,34 @@ export const api = {
   },
 
   post(endpoint, data = {}) {
-    const token = getAuthToken();
-    const payload = typeof data === "object" && data !== null ? { token, ...data } : data;
     return request(endpoint, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify(data)
+    });
+  },
+
+  put(endpoint, data = {}) {
+    return request(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(data)
+    });
+  },
+
+  delete(endpoint, data = null) {
+    return request(endpoint, {
+      method: "DELETE",
+      ...(data ? { body: JSON.stringify(data) } : {})
+    });
+  },
+
+  patch(endpoint, data = {}) {
+    return request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(data)
     });
   },
 
   postFormData(endpoint, formData) {
-    const token = getAuthToken();
-    if (formData instanceof FormData && token && !formData.has("token")) {
-      formData.append("token", token);
-    }
     return request(endpoint, {
       method: "POST",
       body: formData

@@ -4,16 +4,8 @@ import { authService, DEMO_USERS } from "../services/authService";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser() || DEMO_USERS.admin);
+  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // If no user set initially, default to admin for demonstration
-    if (!authService.getCurrentUser()) {
-      localStorage.setItem("health_mitra_current_user", JSON.stringify(DEMO_USERS.admin));
-      setCurrentUser(DEMO_USERS.admin);
-    }
-  }, []);
 
   const login = async (role = "admin", email = "", password = "") => {
     setLoading(true);
@@ -24,6 +16,14 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateCurrentUser = (partialUser) => {
+    setCurrentUser((prev) => {
+      const updated = { ...(prev || {}), ...partialUser };
+      localStorage.setItem("health_mitra_current_user", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const switchRole = (role) => {
@@ -44,6 +44,7 @@ export function AuthProvider({ children }) {
         role: currentUser?.role || null,
         isAuthenticated: !!currentUser,
         login,
+        updateCurrentUser,
         switchRole,
         logout,
         loading

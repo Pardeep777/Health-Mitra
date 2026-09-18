@@ -38,6 +38,8 @@ export function AdminPartnersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedDistrict, setSelectedDistrict] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedAgreement, setSelectedAgreement] = useState("All");
   const [viewMode, setViewMode] = useState("list"); // list or kanban
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -230,9 +232,11 @@ export function AdminPartnersPage() {
         p.address.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCat = selectedCategory === "All" || p.category === selectedCategory;
       const matchDist = selectedDistrict === "All" || p.district === selectedDistrict;
-      return matchSearch && matchCat && matchDist;
+      const matchStatus = selectedStatus === "All" || p.status.toLowerCase() === selectedStatus.toLowerCase();
+      const matchAgreement = selectedAgreement === "All" || (p.agreementStatus || "").toLowerCase().includes(selectedAgreement.toLowerCase());
+      return matchSearch && matchCat && matchDist && matchStatus && matchAgreement;
     });
-  }, [partners, searchTerm, selectedCategory, selectedDistrict]);
+  }, [partners, searchTerm, selectedCategory, selectedDistrict, selectedStatus, selectedAgreement]);
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -400,7 +404,7 @@ export function AdminPartnersPage() {
               setSelectedCategory(e.target.value);
               setCurrentPage(1);
             }}
-            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
           >
             <option value="All">All Categories</option>
             {categories.map((c) => (
@@ -416,7 +420,7 @@ export function AdminPartnersPage() {
               setSelectedDistrict(e.target.value);
               setCurrentPage(1);
             }}
-            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
           >
             <option value="All">All Districts</option>
             {districts.map((d) => (
@@ -424,6 +428,38 @@ export function AdminPartnersPage() {
                 {d.name}
               </option>
             ))}
+          </select>
+
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Applied">Applied</option>
+            <option value="Under Review">Under Review</option>
+            <option value="Approved">Approved</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Blocked">Blocked</option>
+          </select>
+
+          <select
+            value={selectedAgreement}
+            onChange={(e) => {
+              setSelectedAgreement(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
+          >
+            <option value="All">All Agreements</option>
+            <option value="signed">Signed</option>
+            <option value="pending">Pending</option>
+            <option value="expired">Expired</option>
           </select>
         </div>
       </div>

@@ -22,7 +22,7 @@ import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { Button } from "../../components/common/Button";
 import { HealthMitraCard } from "../../components/card/HealthMitraCard";
-import { PrintableCard } from "../../components/card/PrintableCard";
+import { PrintableCard, printCardDocument } from "../../components/card/PrintableCard";
 import { Modal } from "../../components/common/Modal";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -505,7 +505,7 @@ export function AgentRegisterCardholderPage() {
           isOpen={printModalOpen}
           onClose={() => setPrintModalOpen(false)}
           title={`Print Pass: ${createdCard.full_name}`}
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-4xl"
         >
           <div className="space-y-4">
             <PrintableCard
@@ -517,11 +517,25 @@ export function AgentRegisterCardholderPage() {
               district={createdCard.district}
               issueDate={createdCard.issue_date}
             />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setPrintModalOpen(false)}>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+              <Button variant="outline" size="sm" onClick={() => setPrintModalOpen(false)}>
                 Close
               </Button>
-              <Button icon={Printer} onClick={() => window.print()}>
+              <Button
+                size="sm"
+                icon={Printer}
+                onClick={() =>
+                  printCardDocument({
+                    cardholderName: createdCard.full_name,
+                    uniqueId: createdCard.unique_id,
+                    publicToken: createdCard.public_token,
+                    validUntil: createdCard.expiry_date,
+                    status: "Active",
+                    district: createdCard.district,
+                    issueDate: createdCard.issue_date
+                  })
+                }
+              >
                 Print Now
               </Button>
             </div>

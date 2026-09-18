@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { HealthMitraCard } from "../../components/card/HealthMitraCard";
-import { PrintableCard } from "../../components/card/PrintableCard";
+import { PrintableCard, printCardDocument } from "../../components/card/PrintableCard";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import { Card } from "../../components/common/Card";
@@ -121,7 +121,7 @@ export function CardholderCardPage() {
           isOpen={printModalOpen}
           onClose={() => setPrintModalOpen(false)}
           title={`Print Pass: ${memberName}`}
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-4xl"
         >
           <div className="space-y-4">
             <PrintableCard
@@ -133,11 +133,25 @@ export function CardholderCardPage() {
               district="West Tripura"
               issueDate="02 Sep 2026"
             />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setPrintModalOpen(false)}>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+              <Button variant="outline" size="sm" onClick={() => setPrintModalOpen(false)}>
                 Close
               </Button>
-              <Button icon={Printer} onClick={() => window.print()}>
+              <Button
+                size="sm"
+                icon={Printer}
+                onClick={() =>
+                  printCardDocument({
+                    cardholderName: memberName,
+                    uniqueId: uniqueId,
+                    publicToken: publicToken,
+                    validUntil: "01 Sep 2027",
+                    status: "Active",
+                    district: "West Tripura",
+                    issueDate: "02 Sep 2026"
+                  })
+                }
+              >
                 Print Now
               </Button>
             </div>

@@ -28,11 +28,14 @@ import { Modal } from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { HealthMitraCard } from "../../components/card/HealthMitraCard";
-import { PrintableCard } from "../../components/card/PrintableCard";
+import { PrintableCard, printCardDocument } from "../../components/card/PrintableCard";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AdminCardholdersPage() {
+  const [activeView, setActiveView] = useState("cardholders"); // cardholders or cards
+  const [cardType, setCardType] = useState("all"); // all, pending, active, expired
   const [cardholders, setCardholders] = useState([]);
+  const [cardsList, setCardsList] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,23 +89,28 @@ export function AdminCardholdersPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      let data;
       const [distList] = await Promise.all([
         districtService.getAll().catch(() => [])
       ]);
       setDistricts(distList || []);
 
-      if (selectedStatus !== "All") {
-        const statusKey = selectedStatus.toLowerCase().replace(" ", "_");
-        data = await cardholderService.getByStatus(statusKey);
-      } else if (searchTerm.trim()) {
-        data = await cardholderService.search(searchTerm);
+      if (activeView === "cards") {
+        const cList = await cardholderService.getCardsList(cardType);
+        setCardsList(Array.isArray(cList) ? cList : []);
       } else {
-        data = await cardholderService.getAll();
+        let data;
+        if (selectedStatus !== "All") {
+          const statusKey = selectedStatus.toLowerCase().replace(" ", "_");
+          data = await cardholderService.getByStatus(statusKey);
+        } else if (searchTerm.trim()) {
+          data = await cardholderService.search(searchTerm);
+        } else {
+          data = await cardholderService.getAll();
+        }
+        setCardholders(data || []);
       }
-      setCardholders(data || []);
     } catch (err) {
-      showToast("Failed to fetch cardholders from server.", "error");
+      showToast("Failed to fetch data from server.", "error");
     } finally {
       setLoading(false);
     }
@@ -113,7 +121,7 @@ export function AdminCardholdersPage() {
       loadData();
     }, 300);
     return () => clearTimeout(debounceTimer);
-  }, [selectedStatus, searchTerm]);
+  }, [activeView, cardType, selectedStatus, searchTerm]);
 
   // Handle Photo selection
   const handlePhotoChange = (e) => {
@@ -277,11 +285,12 @@ export function AdminCardholdersPage() {
   };
 
   const filteredData = useMemo(() => {
-    return cardholders.filter((c) => {
-      const matchDistrict = selectedDistrict === "All" || c.district === selectedDistrict;
+    const list = activeView === "cards" ? cardsList : cardholders;
+    return list.filter((c) => {
+      const matchDistrict = selectedDistrict === "All" || c.district === selectedDistrict || c.district_name === selectedDistrict;
       return matchDistrict;
     });
-  }, [cardholders, selectedDistrict]);
+  }, [activeView, cardsList, cardholders, selectedDistrict]);
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -414,9 +423,9 @@ export function AdminCardholdersPage() {
       {/* Top action header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-navy-900">Cardholder Roster</h2>
+          <h2 className="text-xl font-bold text-navy-900">Cardholders & Cards Management</h2>
           <p className="text-xs text-slate-500">
-            Total {cardholders.length} registered cardholders across Tripura
+            Real-time API endpoints: /api/admin/cardholders/list, add, edit, delete, status, search • /api/admin/cards/list, update_status, qr_management
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -426,13 +435,39 @@ export function AdminCardholdersPage() {
         </div>
       </div>
 
+      {/* View Mode Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => {
+            setActiveView("cardholders");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeView === "cardholders" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Users className="w-4 h-4" /> Cardholders Register ({cardholders.length})
+        </button>
+        <button
+          onClick={() => {
+            setActiveView("cards");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeView === "cards" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" /> Cards Lifecycle (/cards/list)
+        </button>
+      </div>
+
       {/* Filters Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-card flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search name, Card ID, or mobile..."
+            placeholder={activeView === "cards" ? "Filter by card..." : "Search name, Card ID, or mobile..."}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -443,22 +478,43 @@ export function AdminCardholdersPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Expiring Soon">Expiring Soon</option>
-            <option value="Expired">Expired</option>
-            <option value="Renewed">Renewals</option>
-            <option value="Blocked">Blocked</option>
-            <option value="Inactive">Inactive</option>
-          </select>
+          {activeView === "cards" ? (
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              {[
+                { id: "all", label: "All Cards" },
+                { id: "pending", label: "Pending" },
+                { id: "active", label: "Active" },
+                { id: "expired", label: "Expired" }
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setCardType(t.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    cardType === t.id ? "bg-white text-brand-600 shadow-sm font-bold" : "text-slate-600"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-700 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Expiring Soon">Expiring Soon</option>
+              <option value="Expired">Expired</option>
+              <option value="Renewed">Renewals</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          )}
 
           <select
             value={selectedDistrict}
@@ -809,7 +865,7 @@ export function AdminCardholdersPage() {
           }}
           title={`Digital Pass: ${selectedCardForQr.full_name}`}
           subtitle={`Unique ID: ${selectedCardForQr.unique_id}`}
-          maxWidth="max-w-2xl"
+          maxWidth={printModalOpen ? "max-w-4xl" : "max-w-xl"}
         >
           <div className="space-y-6">
             {!printModalOpen ? (
@@ -848,13 +904,29 @@ export function AdminCardholdersPage() {
                   district={selectedCardForQr.district}
                   issueDate={selectedCardForQr.issue_date}
                 />
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                   <Button variant="outline" size="sm" onClick={() => setPrintModalOpen(false)}>
                     Back to Digital Card
                   </Button>
-                  <Button size="sm" icon={Printer} onClick={() => window.print()}>
-                    Print Document
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      icon={Printer}
+                      onClick={() =>
+                        printCardDocument({
+                          cardholderName: selectedCardForQr.full_name,
+                          uniqueId: selectedCardForQr.unique_id,
+                          publicToken: selectedCardForQr.public_token,
+                          validUntil: selectedCardForQr.expiry_date,
+                          status: selectedCardForQr.status,
+                          district: selectedCardForQr.district,
+                          issueDate: selectedCardForQr.issue_date
+                        })
+                      }
+                    >
+                      Print Document
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

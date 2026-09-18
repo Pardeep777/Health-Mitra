@@ -10,7 +10,11 @@ import {
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Flag,
+  Sparkles,
+  Phone,
+  Layers
 } from "lucide-react";
 import { districtService } from "../../services/districtService";
 import { DataTable } from "../../components/common/DataTable";
@@ -23,7 +27,10 @@ import { Select } from "../../components/common/Select";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AdminDistrictsPage() {
+  const [activeTab, setActiveTab] = useState("districts"); // districts, rollout
+  const [selectedPhase, setSelectedPhase] = useState("all"); // all, phase_1, phase_2, phase_3
   const [districts, setDistricts] = useState([]);
+  const [rolloutData, setRolloutData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -31,9 +38,10 @@ export function AdminDistrictsPage() {
   const [addAreaOpen, setAddAreaOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [rolloutModalOpen, setRolloutModalOpen] = useState(false);
 
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [districtForRollout, setDistrictForRollout] = useState(null);
 
   // Form States
   const [newDistrict, setNewDistrict] = useState({ name: "", state: "Tripura" });
@@ -48,14 +56,25 @@ export function AdminDistrictsPage() {
     state: "Tripura"
   });
 
+  const [rolloutForm, setRolloutForm] = useState({
+    rollout_phase: "phase_1",
+    coordinator_name: "",
+    coordinator_phone: "",
+    target_cardholders: "50000",
+    headquarters: "Agartala"
+  });
+
   const [btnLoading, setBtnLoading] = useState(false);
   const { showToast } = useNotifications();
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await districtService.getAll();
-      setDistricts(data);
+      const data = await districtService.getAll(true);
+      setDistricts(Array.isArray(data) ? data : []);
+
+      const rData = await districtService.getRollout(selectedPhase !== "all" ? { phase: selectedPhase } : {});
+      setRolloutData(Array.isArray(rData) ? rData : Array.isArray(data) ? data : []);
     } catch (err) {
       showToast("Could not load districts from server.", "error");
     } finally {
@@ -65,7 +84,7 @@ export function AdminDistrictsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedPhase]);
 
   // 1. Add District
   const handleAddDistrict = async (e) => {
@@ -167,6 +186,27 @@ export function AdminDistrictsPage() {
     }
   };
 
+  // 5. Update Rollout Phase
+  const handleRolloutSubmit = async (e) => {
+    e.preventDefault();
+    if (!districtForRollout) return;
+    setBtnLoading(true);
+    try {
+      await districtService.updateRollout({
+        id: districtForRollout.id,
+        ...rolloutForm
+      });
+      showToast(`Rollout strategy for ${districtForRollout.name} updated!`, "success");
+      setRolloutModalOpen(false);
+      setDistrictForRollout(null);
+      loadData();
+    } catch (err) {
+      showToast(err.message || "Failed to update rollout.", "error");
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
   const columns = [
     {
       header: "District & Headquarters",
@@ -175,7 +215,7 @@ export function AdminDistrictsPage() {
         <div>
           <span className="font-bold text-navy-900 text-sm block">{row.name}</span>
           <span className="text-[11px] text-slate-500 font-medium">
-            State: {row.state || "Tripura"} • Areas: {row.areas?.length || "Active"}
+            State: {row.state || "Tripura"} • Headquarters: {row.headquarters || row.name}
           </span>
         </div>
       )
@@ -185,11 +225,11 @@ export function AdminDistrictsPage() {
       key: "enrolledCardholders",
       render: (row) => {
         const enrolled = row.enrolledCardholders || row.activeCardholders || 1200;
-        const target = row.targetCardholders || 50000;
+        const target = row.targetCardholders || row.target_cardholders || 50000;
         return (
           <div className="text-xs">
-            <span className="font-extrabold text-brand-600 text-sm">{enrolled.toLocaleString()}</span>
-            <span className="text-slate-400"> / {target.toLocaleString()}</span>
+            <span className="font-extrabold text-brand-600 text-sm">{Number(enrolled).toLocaleString()}</span>
+            <span className="text-slate-400"> / {Number(target).toLocaleString()}</span>
             <div className="w-24 bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
               <div
                 className="bg-brand-500 h-full rounded-full"
@@ -213,12 +253,12 @@ export function AdminDistrictsPage() {
       )
     },
     {
-      header: "District Coordinator",
+      header: "Coordinator Desk",
       key: "coordinator",
       render: (row) => (
         <div className="text-xs">
-          <p className="font-bold text-slate-800">{row.coordinator || "Coordinator Desk"}</p>
-          <p className="text-slate-500 font-mono">{row.contact || row.phone || "+91 98765 43210"}</p>
+          <p className="font-bold text-slate-800">{row.coordinator || row.coordinator_name || "District Desk"}</p>
+          <p className="text-slate-500 font-mono">{row.coordinator_phone || row.contact || row.phone || "+91 98765 43210"}</p>
         </div>
       )
     },
@@ -237,6 +277,23 @@ export function AdminDistrictsPage() {
             title="Add Area to District"
           >
             <Plus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              setDistrictForRollout(row);
+              setRolloutForm({
+                rollout_phase: row.rollout_phase || "phase_1",
+                coordinator_name: row.coordinator || row.coordinator_name || "",
+                coordinator_phone: row.coordinator_phone || row.contact || "",
+                target_cardholders: String(row.targetCardholders || row.target_cardholders || 50000),
+                headquarters: row.headquarters || row.name
+              });
+              setRolloutModalOpen(true);
+            }}
+            className="p-1.5 rounded-lg border border-slate-200 text-purple-600 hover:bg-purple-50 transition"
+            title="Configure Rollout Phase"
+          >
+            <Flag className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleOpenEdit(row, "district")}
@@ -265,7 +322,7 @@ export function AdminDistrictsPage() {
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-navy-900">District & Area Management</h2>
+          <h2 className="text-xl font-bold text-navy-900">District & Rollout Management</h2>
           <p className="text-xs text-slate-500">
             Real-time API endpoints: /api/admin/districts/list, add, edit, delete, rollout
           </p>
@@ -281,20 +338,123 @@ export function AdminDistrictsPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Total Districts" value={districts.length} subtitle="State Coverage" variant="brand" />
+        <StatCard title="Total Districts" value={districts.length} subtitle="Tripura State" variant="brand" />
         <StatCard title="Phase 1 Active" value="3" subtitle="West, Sepahijala, Gomati" variant="emerald" />
         <StatCard title="Phase 2 Expanding" value="3" subtitle="South, Khowai, Dhalai" variant="purple" />
         <StatCard title="Phase 3 Rollout" value="2" subtitle="North, Unakoti" variant="blue" />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={districts}
-        loading={loading}
-        totalItems={districts.length}
-        pageSize={8}
-        currentPage={1}
-      />
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveTab("districts")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeTab === "districts" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <MapPin className="w-4 h-4" /> Districts & Areas Register
+        </button>
+        <button
+          onClick={() => setActiveTab("rollout")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+            activeTab === "rollout" ? "bg-brand-500 text-white font-bold shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Flag className="w-4 h-4" /> Rollout Phases Strategy (/rollout)
+        </button>
+      </div>
+
+      {/* Districts Tab */}
+      {activeTab === "districts" && (
+        <DataTable
+          columns={columns}
+          data={districts}
+          loading={loading}
+          totalItems={districts.length}
+          pageSize={8}
+          currentPage={1}
+        />
+      )}
+
+      {/* Rollout Tab */}
+      {activeTab === "rollout" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-card flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-bold">Filter by Phase:</span>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                {[
+                  { id: "all", label: "All Phases" },
+                  { id: "phase_1", label: "Phase 1" },
+                  { id: "phase_2", label: "Phase 2" },
+                  { id: "phase_3", label: "Phase 3" }
+                ].map((ph) => (
+                  <button
+                    key={ph.id}
+                    onClick={() => setSelectedPhase(ph.id)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                      selectedPhase === ph.id ? "bg-white text-brand-600 shadow-sm font-bold" : "text-slate-600"
+                    }`}
+                  >
+                    {ph.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 font-mono">Endpoint: /api/admin/districts/rollout</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {rolloutData.map((d) => (
+              <div key={d.id} className="bg-white rounded-3xl p-5 border border-slate-200 shadow-card flex flex-col justify-between space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-base text-navy-900">{d.name}</h4>
+                    <p className="text-xs text-slate-500">HQ: {d.headquarters || d.name}</p>
+                  </div>
+                  <Badge variant={d.rollout_phase === "phase_1" ? "success" : d.rollout_phase === "phase_2" ? "purple" : "brand"}>
+                    {(d.rollout_phase || "phase_1").toUpperCase().replace("_", " ")}
+                  </Badge>
+                </div>
+
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Target Cardholders:</span>
+                    <span className="font-extrabold text-navy-900">{Number(d.target_cardholders || 50000).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">District Coordinator:</span>
+                    <span className="font-bold text-slate-800">{d.coordinator_name || d.coordinator || "Coordinator Desk"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Coordinator Mobile:</span>
+                    <span className="font-mono text-slate-700">{d.coordinator_phone || d.phone || "+91 98765 43210"}</span>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setDistrictForRollout(d);
+                    setRolloutForm({
+                      rollout_phase: d.rollout_phase || "phase_1",
+                      coordinator_name: d.coordinator || d.coordinator_name || "",
+                      coordinator_phone: d.coordinator_phone || d.contact || "",
+                      target_cardholders: String(d.targetCardholders || d.target_cardholders || 50000),
+                      headquarters: d.headquarters || d.name
+                    });
+                    setRolloutModalOpen(true);
+                  }}
+                >
+                  Configure Rollout Strategy
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 1. Add District Modal */}
       <Modal
@@ -369,7 +529,61 @@ export function AdminDistrictsPage() {
         </form>
       </Modal>
 
-      {/* 3. Edit District / Area Modal */}
+      {/* 3. Configure Rollout Modal */}
+      {districtForRollout && (
+        <Modal
+          isOpen={rolloutModalOpen}
+          onClose={() => setRolloutModalOpen(false)}
+          title={`Rollout Configuration: ${districtForRollout.name}`}
+          subtitle="POST /api/admin/districts/rollout"
+        >
+          <form onSubmit={handleRolloutSubmit} className="space-y-4 text-xs">
+            <Select
+              label="Rollout Phase *"
+              options={[
+                { label: "Phase 1 — Priority Launch", value: "phase_1" },
+                { label: "Phase 2 — Secondary Expansion", value: "phase_2" },
+                { label: "Phase 3 — Remote / Hill Coverage", value: "phase_3" }
+              ]}
+              value={rolloutForm.rollout_phase}
+              onChange={(e) => setRolloutForm({ ...rolloutForm, rollout_phase: e.target.value })}
+            />
+            <Input
+              label="District Headquarters"
+              value={rolloutForm.headquarters}
+              onChange={(e) => setRolloutForm({ ...rolloutForm, headquarters: e.target.value })}
+            />
+            <Input
+              label="Target Cardholders (Annual Objective)"
+              type="number"
+              value={rolloutForm.target_cardholders}
+              onChange={(e) => setRolloutForm({ ...rolloutForm, target_cardholders: e.target.value })}
+            />
+            <Input
+              label="Assigned District Coordinator Name"
+              placeholder="e.g. Sudip Chakraborty"
+              value={rolloutForm.coordinator_name}
+              onChange={(e) => setRolloutForm({ ...rolloutForm, coordinator_name: e.target.value })}
+            />
+            <Input
+              label="Coordinator Phone Number"
+              placeholder="e.g. +91 98765 43210"
+              value={rolloutForm.coordinator_phone}
+              onChange={(e) => setRolloutForm({ ...rolloutForm, coordinator_phone: e.target.value })}
+            />
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button variant="outline" type="button" onClick={() => setRolloutModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={btnLoading}>
+                Update Rollout Strategy
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* 4. Edit District / Area Modal */}
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
@@ -412,7 +626,7 @@ export function AdminDistrictsPage() {
         </form>
       </Modal>
 
-      {/* 4. Delete Confirmation Modal */}
+      {/* 5. Delete Confirmation Modal */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}

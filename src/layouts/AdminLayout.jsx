@@ -1,11 +1,18 @@
 import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import { AdminSidebar } from "../components/layout/AdminSidebar";
 import { AdminTopNavbar } from "../components/layout/AdminTopNavbar";
 import { Toast } from "../components/common/Toast";
+import { useAuth } from "../context/AuthContext";
 
 export function AdminLayout() {
+  const { currentUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // If not authenticated or not admin, redirect to login page
+  if (!currentUser || currentUser.role !== "admin") {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900">
@@ -25,3 +32,4 @@ export function AdminLayout() {
     </div>
   );
 }
+

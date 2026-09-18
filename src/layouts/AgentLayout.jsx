@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { Toast } from "../components/common/Toast";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { UserProfileDropdown } from "../components/layout/UserProfileDropdown";
@@ -22,6 +22,10 @@ export function AgentLayout() {
   const location = useLocation();
   const { unreadCount } = useNotifications();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  if (!currentUser || currentUser.role !== "agent") {
+    return <Navigate to="/login" replace />;
+  }
 
   const links = [
     { label: "Dashboard", path: "/agent", icon: LayoutDashboard, exact: true },

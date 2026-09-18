@@ -42,6 +42,7 @@ import { AdminAnalyticsPage } from "../pages/admin/AdminAnalyticsPage";
 import { AdminReportsPage } from "../pages/admin/AdminReportsPage";
 import { AdminAuditLogsPage } from "../pages/admin/AdminAuditLogsPage";
 import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage";
+import { AdminContentPage } from "../pages/admin/AdminContentPage";
 
 // Partner Pages
 import { PartnerDashboardPage } from "../pages/partner/PartnerDashboardPage";
@@ -107,6 +108,7 @@ export function AppRoutes() {
         <Route path="renewals" element={<AdminRenewalsPage />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="content" element={<AdminContentPage />} />
         <Route path="audit-logs" element={<AdminAuditLogsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>

@@ -20,25 +20,25 @@ import { Button } from "../../components/common/Button";
 
 export function LoginPage() {
   const [selectedRole, setSelectedRole] = useState("admin");
-  const [email, setEmail] = useState("admin@gmail.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { showToast } = useNotifications();
   const navigate = useNavigate();
 
   const roles = [
-    { id: "admin", label: "Admin", icon: Shield, defaultEmail: "admin@gmail.com", defaultPass: "admin123", path: "/admin" },
-    { id: "partner", label: "Partner", icon: Stethoscope, defaultEmail: "partner@healthmitra.demo", defaultPass: "partner123", path: "/partner" },
-    { id: "agent", label: "Field Agent", icon: UserCheck, defaultEmail: "agent@healthmitra.demo", defaultPass: "agent123", path: "/agent" },
-    { id: "cardholder", label: "Cardholder", icon: Users, defaultEmail: "rahul.sharma@example.com", defaultPass: "card123", path: "/cardholder/card" },
-    { id: "district", label: "District", icon: MapPin, defaultEmail: "coordinator.west@healthmitra.demo", defaultPass: "district123", path: "/district/dashboard" }
+    { id: "admin", label: "Admin", icon: Shield, path: "/admin" },
+    { id: "partner", label: "Partner", icon: Stethoscope, path: "/partner" },
+    { id: "agent", label: "Field Agent", icon: UserCheck, path: "/agent" },
+    { id: "cardholder", label: "Cardholder", icon: Users, path: "/cardholder/card" },
+    { id: "district", label: "District", icon: MapPin, path: "/district/dashboard" }
   ];
 
   const handleRoleSelect = (roleObj) => {
     setSelectedRole(roleObj.id);
-    setEmail(roleObj.defaultEmail);
-    setPassword(roleObj.defaultPass);
+    setEmail("");
+    setPassword("");
   };
 
   const handleLogin = async (e) => {
@@ -80,7 +80,7 @@ export function LoginPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-navy-900">Operations Portal Login</h1>
             <p className="text-xs text-slate-500 mt-1">
-              Select your role to access your Health Mitra authenticated workspace.
+              Enter your credentials to access your Health Mitra authenticated workspace.
             </p>
           </div>
         </div>
@@ -108,44 +108,93 @@ export function LoginPage() {
           })}
         </div>
 
-        {/* Quick Demo Credentials Info Banner */}
-        <div className="bg-orange-50/70 border border-orange-200 rounded-2xl p-4 text-xs space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-brand-900">
-            <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-            <span>1-Click Demo Credentials:</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-between text-slate-600 pt-1">
-            <span>Role: <strong className="text-navy-900 capitalize">{selectedRole}</strong></span>
-            <span>ID: <code className="bg-white px-1.5 py-0.5 rounded border border-orange-200 font-mono text-[11px] text-brand-700">{email}</code></span>
-          </div>
-        </div>
-
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
-            label="User ID / Mobile / Email"
+            label={
+              selectedRole === "partner"
+                ? "Partner Mobile / Registered Email *"
+                : selectedRole === "admin"
+                ? "Admin Email / Username *"
+                : "User ID / Mobile / Email *"
+            }
             type="text"
             icon={Mail}
+            placeholder={
+              selectedRole === "partner"
+                ? "e.g. 9436145001 or mitrapharmacy@healthmitra.demo"
+                : selectedRole === "admin"
+                ? "e.g. admin@gmail.com"
+                : "e.g. user@healthmitra.demo"
+            }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
 
           <Input
-            label="Password / OTP"
+            label={
+              selectedRole === "partner"
+                ? "6-Digit OTP / Access PIN *"
+                : "Password / Access PIN *"
+            }
             type="password"
             icon={Lock}
+            placeholder={
+              selectedRole === "partner"
+                ? "e.g. 123456"
+                : "Enter your password"
+            }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
+          {/* Quick Demo Credentials Helper */}
+          {selectedRole === "partner" && (
+            <div className="bg-orange-50/80 border border-orange-200/80 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
+              <div className="text-navy-900 leading-tight">
+                <span className="font-bold text-brand-700">Quick Partner Demo:</span>
+                <span className="text-slate-600 block sm:inline sm:ml-1">Mobile: <b>9436145001</b> • OTP: <b>123456</b></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("9436145001");
+                  setPassword("123456");
+                }}
+                className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs"
+              >
+                Auto Fill
+              </button>
+            </div>
+          )}
+
+          {selectedRole === "admin" && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
+              <div className="text-navy-900 leading-tight">
+                <span className="font-bold text-slate-700">Admin Demo:</span>
+                <span className="text-slate-600 block sm:inline sm:ml-1">Email: <b>admin@gmail.com</b> • Pass: <b>admin</b></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@gmail.com");
+                  setPassword("admin");
+                }}
+                className="px-2.5 py-1 bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs"
+              >
+                Auto Fill
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-xs pt-1">
             <label className="flex items-center gap-2 cursor-pointer text-slate-600">
               <input type="checkbox" defaultChecked className="rounded text-brand-500 focus:ring-brand-400" />
               <span>Remember session</span>
             </label>
-            <span className="text-brand-600 hover:underline cursor-pointer">Forgot access PIN?</span>
+            <span className="text-brand-600 hover:underline cursor-pointer">Forgot access PIN / OTP?</span>
           </div>
 
           <div className="pt-2">

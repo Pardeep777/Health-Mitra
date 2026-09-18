@@ -47,10 +47,11 @@ export function AdminSidebar({ isOpen, onClose }) {
       ]
     },
     {
-      title: "Compliance & System",
+      title: "Content & Compliance",
       items: [
-        { label: "Audit Logs", path: "/admin/audit-logs", icon: FileText },
-        { label: "Settings", path: "/admin/settings", icon: Settings }
+        { label: "Website CMS", path: "/admin/content", icon: FileText },
+        { label: "Audit Logs", path: "/admin/audit-logs", icon: ShieldCheck },
+        { label: "Platform Settings", path: "/admin/settings", icon: Settings }
       ]
     }
   ];

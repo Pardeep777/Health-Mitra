@@ -2,9 +2,9 @@ import { api } from "./api";
 
 export const agentService = {
   /**
-   * Get all agents from backend API: GET /admin/agents/list or /admin/agents/status?tab=all
+   * Get all agents: GET /admin/agents/list
    */
-  async getAll(tab = "all") {
+  async getAll() {
     try {
       const res = await api.get("/admin/agents/list");
       if (res.success && Array.isArray(res.data)) {
@@ -12,6 +12,21 @@ export const agentService = {
       }
     } catch (e) {
       console.warn("API agents fetch error", e);
+    }
+    return [];
+  },
+
+  /**
+   * Get agents by status tab: GET /admin/agents/status?tab=all|active|inactive|blocked
+   */
+  async getByStatusTab(tab = "all") {
+    try {
+      const res = await api.get("/admin/agents/status", { tab });
+      if (res.success && Array.isArray(res.data)) {
+        return res.data.map(normalizeAgent);
+      }
+    } catch (e) {
+      console.warn("API agents status tab error", e);
     }
     return [];
   },
@@ -89,7 +104,7 @@ export const agentService = {
    */
   async delete(id, permanent = 0) {
     try {
-      const res = await api.post("/admin/agents/delete", { id, permanent });
+      const res = await api.post("/admin/agents/delete", { id: Number(id) || id, permanent });
       if (res.success) {
         return { success: true, message: res.message || "Agent deleted successfully!" };
       }
@@ -122,6 +137,7 @@ export const agentService = {
   async clearPendingCommission({ id, payment_mode = "bank_transfer", transaction_reference = "", notes = "" }) {
     const res = await api.post("/admin/agents/commission", {
       id: Number(id),
+      action: "clear_pending",
       payment_mode,
       transaction_reference,
       notes
@@ -151,7 +167,7 @@ export const agentService = {
 
   /**
    * Fetch agent targets: GET /admin/agents/targets
-   * Query params: ?id=..., ?status=achieved, ?district_id=...
+   * Query params: ?id=..., ?district_id=..., ?status=achieved|on_track|in_progress|not_started
    */
   async getTargets(params = {}) {
     try {
@@ -178,18 +194,6 @@ export const agentService = {
       throw new Error(res.message || "Failed to update agent target.");
     }
     return { success: true, message: res.message || "Agent target updated successfully!" };
-  },
-
-  async incrementRegistration(agentId) {
-    const all = await this.getAll();
-    const index = all.findIndex((a) => a.id === agentId || a.agent_code === agentId);
-    if (index === -1) return null;
-    all[index].today_cards = (all[index].today_cards || 0) + 1;
-    all[index].month_cards = (all[index].month_cards || 0) + 1;
-    all[index].total_cards = (all[index].total_cards || 0) + 1;
-    all[index].total_commission_earned = (all[index].total_commission_earned || 0) + 10;
-    localStorage.setItem("health_mitra_agents", JSON.stringify(all));
-    return all[index];
   }
 };
 
@@ -209,6 +213,7 @@ function normalizeAgent(item) {
     month_cards: Number(item.month_cards || item.monthly_enrolments || 0),
     total_cards: Number(item.total_cards || item.lifetime_enrolments || 0),
     total_commission_earned: Number(item.total_commission_earned || item.commission || 0),
+    pending_commission: Number(item.pending_commission || item.pending_payout || 0),
     status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : "Active",
     performance: item.performance || (Number(item.today_cards || 0) >= 10 ? "Excellent" : "On Track"),
     rating: Number(item.rating || 4.8),

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 export function UserProfileDropdown({ align = "right", compact = false }) {
-  const { currentUser, role, logout, switchRole } = useAuth();
+  const { currentUser, role, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -42,11 +42,18 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
     navigate("/login");
   };
 
-  const handleRoleSwitch = (newRole, path) => {
-    switchRole(newRole);
-    setOpen(false);
-    navigate(path);
-  };
+  // If not logged in, render a clean Login Portal CTA
+  if (!currentUser) {
+    return (
+      <Link
+        to="/login"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-500/80 bg-brand-50/50 hover:bg-brand-500 hover:text-white text-brand-700 font-bold text-xs shadow-2xs transition-all duration-150"
+      >
+        <Shield className="w-3.5 h-3.5" />
+        <span>Operations Login</span>
+      </Link>
+    );
+  }
 
   // Role details config
   const roleBadges = {
@@ -155,14 +162,14 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
             </div>
           </div>
 
-          {/* Quick Role Specific Actions */}
+          {/* Role-Specific Actions */}
           <div className="p-2 space-y-0.5 text-xs font-medium text-slate-700">
             {role === "admin" && (
               <>
                 <Link
                   to="/admin"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition font-bold text-brand-600"
                 >
                   <Shield className="w-4 h-4 text-brand-500" />
                   <span>Admin Dashboard</span>
@@ -191,7 +198,7 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
                 <Link
                   to="/partner"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition font-bold text-emerald-600"
                 >
                   <Stethoscope className="w-4 h-4 text-emerald-500" />
                   <span>Partner Dashboard</span>
@@ -220,7 +227,7 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
                 <Link
                   to="/agent"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition font-bold text-amber-600"
                 >
                   <UserCheck className="w-4 h-4 text-amber-500" />
                   <span>Agent Dashboard</span>
@@ -249,7 +256,7 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
                 <Link
                   to="/cardholder/card"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition font-bold text-blue-600"
                 >
                   <CreditCard className="w-4 h-4 text-blue-500" />
                   <span>View Digital Card</span>
@@ -278,7 +285,7 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
                 <Link
                   to="/district/dashboard"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition font-bold text-indigo-600"
                 >
                   <MapPin className="w-4 h-4 text-indigo-500" />
                   <span>District Dashboard</span>
@@ -308,49 +315,19 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
             </Link>
           </div>
 
-          {/* Quick Demo Portal Switcher inside Menu */}
-          <div className="p-3 bg-slate-50/70">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Quick Switch Portal
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-              <button
-                onClick={() => handleRoleSwitch("admin", "/admin")}
-                className={`px-2 py-1.5 rounded-lg text-left font-medium transition flex items-center gap-1.5 ${
-                  role === "admin" ? "bg-brand-500 text-white font-bold" : "bg-white hover:bg-slate-200/80 text-slate-700"
-                }`}
-              >
-                <Shield className="w-3 h-3" /> Admin
-              </button>
-              <button
-                onClick={() => handleRoleSwitch("partner", "/partner")}
-                className={`px-2 py-1.5 rounded-lg text-left font-medium transition flex items-center gap-1.5 ${
-                  role === "partner" ? "bg-brand-500 text-white font-bold" : "bg-white hover:bg-slate-200/80 text-slate-700"
-                }`}
-              >
-                <Stethoscope className="w-3 h-3" /> Partner
-              </button>
-              <button
-                onClick={() => handleRoleSwitch("agent", "/agent")}
-                className={`px-2 py-1.5 rounded-lg text-left font-medium transition flex items-center gap-1.5 ${
-                  role === "agent" ? "bg-brand-500 text-white font-bold" : "bg-white hover:bg-slate-200/80 text-slate-700"
-                }`}
-              >
-                <UserCheck className="w-3 h-3" /> Agent
-              </button>
-              <button
-                onClick={() => handleRoleSwitch("cardholder", "/cardholder/card")}
-                className={`px-2 py-1.5 rounded-lg text-left font-medium transition flex items-center gap-1.5 ${
-                  role === "cardholder" ? "bg-brand-500 text-white font-bold" : "bg-white hover:bg-slate-200/80 text-slate-700"
-                }`}
-              >
-                <CreditCard className="w-3 h-3" /> Member
-              </button>
-            </div>
-          </div>
+          {/* Sign Out & Switch Account */}
+          <div className="p-2 space-y-1">
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl flex items-center justify-between transition"
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-slate-400" />
+                <span>Switch Portal / Re-login</span>
+              </div>
+            </Link>
 
-          {/* Sign Out */}
-          <div className="p-2">
             <button
               onClick={handleLogout}
               className="w-full text-left px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center justify-between transition"
@@ -361,7 +338,6 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
               </div>
               <span className="text-[10px] text-rose-400">Exit</span>
             </button>
-            
           </div>
         </div>
       )}
