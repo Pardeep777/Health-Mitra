@@ -248,6 +248,14 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
                   <FileText className="w-4 h-4 text-slate-500" />
                   <span>Earnings & Performance</span>
                 </Link>
+                <Link
+                  to="/agent/profile"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-navy-900 transition"
+                >
+                  <User className="w-4 h-4 text-slate-500" />
+                  <span>Agent Profile & Settings</span>
+                </Link>
               </>
             )}
 

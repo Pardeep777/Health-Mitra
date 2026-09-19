@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { HealthMitraCard } from "../../components/card/HealthMitraCard";
 import { PrintableCard, printCardDocument } from "../../components/card/PrintableCard";
@@ -20,13 +20,31 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function CardholderCardPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
   const { showToast } = useNotifications();
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [liveProfile, setLiveProfile] = useState(null);
 
-  const memberName = currentUser?.name || "Rahul Sharma";
-  const uniqueId = currentUser?.card_id || "HMC-7F38A21";
-  const publicToken = currentUser?.public_token || "HM_PUBLIC_7F38A21_X92";
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await cardholderService.getProfile();
+        if (res?.success && res.data) {
+          setLiveProfile(res.data);
+        }
+      } catch (e) {
+        console.warn("Cardholder card profile fetch notice", e);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const cardData = liveProfile || currentUser || {};
+  const memberName = cardData.full_name || cardData.name || "Rahul Sharma";
+  const uniqueId = cardData.unique_id || cardData.card_id || cardData.customer_code || "HMC-7F38A21";
+  const publicToken = cardData.public_token || `HM_PUBLIC_${uniqueId}`;
+  const validUntil = cardData.expiry_date || "01 Sep 2027";
+  const cardStatus = cardData.status || "Active";
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -42,8 +60,8 @@ export function CardholderCardPage() {
             cardholderName={memberName}
             uniqueId={uniqueId}
             publicToken={publicToken}
-            validUntil="01 Sep 2027"
-            status="Active"
+            validUntil={validUntil}
+            status={cardStatus}
             className="shadow-2xl"
           />
 

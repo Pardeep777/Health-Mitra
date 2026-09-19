@@ -90,9 +90,9 @@ export function AgentLayout() {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Quick Enrolment CTA */}
           <Link to="/agent/register" className="hidden sm:inline-flex">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition shadow-xs">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>+ New Card (₹49)</span>
+              <span>+ New Card (₹499)</span>
             </button>
           </Link>
 

@@ -18,6 +18,7 @@ import { partnerService } from "../../services/partnerService";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
+import { CameraQrScannerModal } from "../../components/common/CameraQrScannerModal";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 
@@ -29,6 +30,7 @@ export function PartnerVerifyPage() {
   const [loading, setLoading] = useState(false);
   const [verifiedResult, setVerifiedResult] = useState(null);
   const [error, setError] = useState(null);
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
 
   // Dynamic services categories list loaded from GET /partner/get_categories & GET /partner/services
   const [categoryOptions, setCategoryOptions] = useState([
@@ -174,6 +176,13 @@ export function PartnerVerifyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQrScanned = (extractedId) => {
+    if (!extractedId) return;
+    setQuery(extractedId);
+    handleVerify(null, extractedId);
+    showToast(`QR Code Scanned! Verifying Card ID: ${extractedId}`, "success");
   };
 
   const handleConfirmDiscount = async () => {
@@ -382,11 +391,7 @@ export function PartnerVerifyPage() {
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => {
-                const sampleQr = "965b3db6e4b5597dc95e2f22181cf448";
-                setQuery(sampleQr);
-                handleVerify(null, sampleQr);
-              }}
+              onClick={() => setCameraModalOpen(true)}
               icon={QrCode}
               className="whitespace-nowrap"
             >
@@ -614,6 +619,13 @@ export function PartnerVerifyPage() {
           </div>
         )}
       </Modal>
+
+      {/* Live Camera QR Scanner Modal */}
+      <CameraQrScannerModal
+        isOpen={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        onScanSuccess={handleQrScanned}
+      />
     </div>
   );
 }

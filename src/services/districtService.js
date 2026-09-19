@@ -6,20 +6,36 @@ const DISTRICT_CACHE_TTL = 30000; // 30 seconds
 
 export const districtService = {
   /**
-   * Fetch all districts: GET /admin/districts/list
+   * Fetch all districts: GET /agent/get_districts (or fallback to /admin/districts/list)
    */
-  async getAll(forceRefresh = false) {
+  async getAll(forceRefresh = false, params = {}) {
     const now = Date.now();
     if (!forceRefresh && districtCache && now - lastDistrictFetchTime < DISTRICT_CACHE_TTL) {
       return districtCache;
     }
 
-    const res = await api.get("/admin/districts/list");
-    if (res.success && Array.isArray(res.data)) {
-      districtCache = res.data;
-      lastDistrictFetchTime = now;
-      return res.data;
+    try {
+      const res = await api.get("/agent/get_districts", params);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        districtCache = res.data;
+        lastDistrictFetchTime = now;
+        return res.data;
+      }
+    } catch (e) {
+      console.warn("API /agent/get_districts fetch error, trying fallback...", e);
     }
+
+    try {
+      const resAdmin = await api.get("/admin/districts/list", params);
+      if (resAdmin.success && Array.isArray(resAdmin.data)) {
+        districtCache = resAdmin.data;
+        lastDistrictFetchTime = now;
+        return resAdmin.data;
+      }
+    } catch (e) {
+      console.warn("API /admin/districts/list fetch error", e);
+    }
+
     return districtCache || [];
   },
 

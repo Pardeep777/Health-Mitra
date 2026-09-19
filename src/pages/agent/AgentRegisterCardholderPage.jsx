@@ -36,49 +36,71 @@ export function AgentRegisterCardholderPage() {
   const [loading, setLoading] = useState(false);
   const [createdCard, setCreatedCard] = useState(null);
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [cardPriceInfo, setCardPriceInfo] = useState({
+    price: 499,
+    consent_text:
+      "I hereby consent to register for Health Mitra membership under the Digital Personal Data Protection Act (DPDPA 2023) and agree to share demographic details for digital health discount pass issuance."
+  });
 
   // Form State
   const [formData, setFormData] = useState({
     fullName: "",
     mobile: "",
-    dob: "1992-06-15",
+    dob: "1995-08-20",
     gender: "Male",
     district: currentUser?.district || "West Tripura",
+    district_id: currentUser?.district_id || 1,
     address: "",
+    pinCode: "799001",
     idProofType: "Aadhaar Card Reference",
-    idProofReference: "XXXX-XXXX-9842",
+    idProofReference: "XXXX-XXXX-8921",
     consentAgreed: true,
     paymentMode: "Cash",
-    amount: 49
+    amount: 499
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    async function loadDistricts() {
+    async function loadInitialData() {
       try {
-        const data = await districtService.getAll();
-        setDistricts(Array.isArray(data) ? data : []);
+        const [districtsData, priceRes] = await Promise.all([
+          agentService.getDistricts().catch(() => districtService.getAll()),
+          agentService.getCardPrice().catch(() => null)
+        ]);
+
+        if (Array.isArray(districtsData) && districtsData.length > 0) {
+          setDistricts(districtsData);
+        }
+
+        if (priceRes && priceRes.price) {
+          setCardPriceInfo(priceRes);
+          setFormData((prev) => ({
+            ...prev,
+            amount: priceRes.price
+          }));
+        }
       } catch (e) {
-        setDistricts([]);
+        console.warn("Initial data load error", e);
       }
     }
-    loadDistricts();
+    loadInitialData();
   }, []);
 
   const districtOptions = districts.map((d) => ({
-    label: d.name,
-    value: d.name
+    label: d.name || d.district_name || d.title,
+    value: d.name || d.district_name || d.title,
+    id: d.id
   }));
 
   const validateStep = () => {
     const errs = {};
     if (step === 1) {
-      if (!formData.fullName.trim()) errs.fullName = "Full name is required";
-      if (!formData.mobile.trim() || formData.mobile.length < 10) errs.mobile = "10-digit mobile required";
-      if (!formData.address.trim()) errs.address = "Address is required";
+      if (!formData.fullName.trim()) errs.fullName = "Full Name is required";
+      if (!formData.mobile.trim() || formData.mobile.length < 10) errs.mobile = "Valid 10-digit mobile number required";
+      if (!formData.address.trim()) errs.address = "Complete residential address is required";
     } else if (step === 2) {
-      if (!formData.idProofReference.trim()) errs.idProofReference = "ID reference is required";
+      if (!formData.idProofReference.trim()) errs.idProofReference = "Masked ID reference is required (e.g. XXXX-XXXX-9842)";
     } else if (step === 3) {
       if (!formData.consentAgreed) errs.consentAgreed = "Cardholder consent is required under DPDPA 2023";
     }
@@ -99,41 +121,49 @@ export function AgentRegisterCardholderPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      const selectedDist = districts.find(
+        (d) => (d.name || d.district_name || d.title) === formData.district
+      );
       const payload = {
-        name: formData.fullName,
-        mobile: formData.mobile,
+        full_name: formData.fullName.trim(),
+        mobile: formData.mobile.trim(),
         dob: formData.dob,
-        gender: formData.gender?.toLowerCase() || "male",
-        district_id: 1,
+        gender: formData.gender,
+        district_id: selectedDist?.id || formData.district_id || 1,
         district: formData.district,
-        address: formData.address,
-        pin_code: "799001",
+        address: formData.address.trim(),
+        pin_code: formData.pinCode || "799001",
         id_proof_type: formData.idProofType,
-        id_proof_reference: formData.idProofReference,
-        payment_mode: formData.paymentMode,
-        price_paid: 49,
-        registered_by_agent_id: currentUser?.agent_id || "AGT-101",
-        registered_by_name: currentUser?.name || "Rajesh Kumar"
+        id_proof_reference: formData.idProofReference.trim(),
+        consent_checkbox: 1,
+        amount: cardPriceInfo.price || 499,
+        payment_mode: formData.paymentMode === "Cash" ? "Cash Collected" : "UPI / QR Payment"
       };
 
-      const res = await cardholderService.create(payload);
-      const newCard = res.record || {
-        ...payload,
-        full_name: payload.name,
-        unique_id: `HMC-${Date.now().toString().slice(-6)}`,
-        public_token: `HM_PUBLIC_${Date.now()}`,
-        expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        status: "Active"
+      const res = await agentService.registerCardholder(payload);
+      const resData = res.data || {};
+
+      const newCard = {
+        id: resData.cardholder_id || resData.id,
+        cardholder_id: resData.cardholder_id || resData.id,
+        full_name: resData.full_name || formData.fullName,
+        mobile: resData.mobile || formData.mobile,
+        unique_id: resData.unique_id || resData.customer_code || `HMC-${Date.now().toString().slice(-6)}`,
+        customer_code: resData.customer_code || resData.unique_id,
+        public_token: resData.card?.public_token || `HM_PUBLIC_${Date.now()}`,
+        expiry_date: resData.card?.expiry_date || resData.card?.valid_thru || "2027-09-18",
+        issue_date: resData.card?.issue_date || resData.created_at?.split(" ")[0] || "2026-09-18",
+        status: "Active",
+        district: resData.district || formData.district,
+        transaction_id: resData.payment?.transaction_id || `TXN-${Date.now().toString().slice(-6)}`,
+        amount: resData.payment?.amount || cardPriceInfo.price || 499
       };
 
-      if (currentUser?.agent_id) {
-        await agentService.incrementRegistration(currentUser.agent_id);
-      }
       setCreatedCard(newCard);
       setStep(5);
-      showToast(res.message || `Cardholder ${newCard.full_name} enrolled successfully!`, "success");
+      showToast(res.message || `Cardholder ${newCard.full_name} registered & Card issued!`, "success");
 
-      // Trigger confetti celebration
+      // Trigger celebratory confetti
       try {
         confetti({
           particleCount: 80,
@@ -142,7 +172,7 @@ export function AgentRegisterCardholderPage() {
         });
       } catch (e) {}
     } catch (err) {
-      showToast(err.message || "Failed to register cardholder. Please check details.", "error");
+      showToast(err.message || "Failed to register cardholder. Please check form details.", "error");
     } finally {
       setLoading(false);
     }
@@ -152,15 +182,17 @@ export function AgentRegisterCardholderPage() {
     setFormData({
       fullName: "",
       mobile: "",
-      dob: "1992-06-15",
+      dob: "1995-08-20",
       gender: "Male",
       district: currentUser?.district || "West Tripura",
+      district_id: currentUser?.district_id || 1,
       address: "",
+      pinCode: "799001",
       idProofType: "Aadhaar Card Reference",
-      idProofReference: "XXXX-XXXX-9842",
+      idProofReference: "XXXX-XXXX-8921",
       consentAgreed: true,
       paymentMode: "Cash",
-      amount: 49
+      amount: 499
     });
     setCreatedCard(null);
     setStep(1);
@@ -319,9 +351,9 @@ export function AgentRegisterCardholderPage() {
             </div>
 
             <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 text-xs space-y-2">
-              <p className="font-bold text-brand-900">Consent Declaration:</p>
+              <p className="font-bold text-brand-900">Consent Declaration (DPDPA 2023):</p>
               <p className="text-slate-700 leading-relaxed italic">
-                "I hereby consent to the collection and processing of my name, contact number, and district for the issuance and counter verification of the Health Mitra Smart Healthcare Discount Card."
+                "{cardPriceInfo.consent_text}"
               </p>
             </div>
 
@@ -348,8 +380,8 @@ export function AgentRegisterCardholderPage() {
               <Button variant="outline" onClick={handleBack}>
                 ← Back
               </Button>
-              <Button size="lg" className="flex-1" onClick={handleNext}>
-                Proceed to Payment (₹49) →
+              <Button size="lg" className="flex-1 font-bold" onClick={handleNext}>
+                Proceed to Payment (₹{cardPriceInfo.price || 499}) →
               </Button>
             </div>
           </div>
@@ -360,13 +392,13 @@ export function AgentRegisterCardholderPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-bold text-navy-900">Step 4: Payment Collection</h2>
-              <p className="text-xs text-slate-500">Collect nominal ₹49 annual membership fee</p>
+              <p className="text-xs text-slate-500">Collect standard ₹{cardPriceInfo.price || 499} annual membership fee</p>
             </div>
 
             <div className="bg-gradient-to-br from-navy-950 to-slate-900 text-white rounded-2xl p-5 flex items-center justify-between shadow-md">
               <div>
                 <span className="text-[10px] uppercase font-bold text-brand-400">Total Annual Fee</span>
-                <p className="text-3xl font-extrabold">₹49.00</p>
+                <p className="text-3xl font-extrabold">₹{cardPriceInfo.price || 499}.00</p>
               </div>
               <span className="bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase">
                 1 Year Validity
@@ -381,23 +413,23 @@ export function AgentRegisterCardholderPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, paymentMode: "Cash" })}
-                  className={`p-4 rounded-2xl border text-center transition ${
+                  className={`p-4 rounded-2xl border text-center transition cursor-pointer ${
                     formData.paymentMode === "Cash"
-                      ? "border-brand-500 bg-orange-50/60 font-bold text-brand-900"
+                      ? "border-brand-500 bg-orange-50/60 font-bold text-brand-900 ring-2 ring-brand-400"
                       : "border-slate-200 hover:bg-slate-50 text-slate-700"
                   }`}
                 >
                   <CreditCard className="w-5 h-5 mx-auto mb-1 text-brand-500" />
                   <span className="text-xs block font-bold">Cash Collected</span>
-                  <span className="text-[10px] text-slate-500">Collected ₹49 in cash</span>
+                  <span className="text-[10px] text-slate-500">Collected ₹499 in cash</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, paymentMode: "Digital (UPI)" })}
-                  className={`p-4 rounded-2xl border text-center transition ${
+                  className={`p-4 rounded-2xl border text-center transition cursor-pointer ${
                     formData.paymentMode === "Digital (UPI)"
-                      ? "border-brand-500 bg-orange-50/60 font-bold text-brand-900"
+                      ? "border-brand-500 bg-orange-50/60 font-bold text-brand-900 ring-2 ring-brand-400"
                       : "border-slate-200 hover:bg-slate-50 text-slate-700"
                   }`}
                 >
@@ -416,10 +448,10 @@ export function AgentRegisterCardholderPage() {
                 size="lg"
                 variant="primary"
                 loading={loading}
-                className="flex-1 shadow-orange-glow"
+                className="flex-1 shadow-orange-glow font-bold"
                 onClick={handleSubmit}
               >
-                Complete Registration (₹49)
+                Complete Registration (₹499)
               </Button>
             </div>
           </div>

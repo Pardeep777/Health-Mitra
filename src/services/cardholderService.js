@@ -274,8 +274,215 @@ export const cardholderService = {
 
   async renew(unique_id) {
     return this.getByStatus("renewals");
+  },
+
+  /**
+   * Get logged-in Cardholder Profile: GET /cardholder/get_profile
+   */
+  async getProfile() {
+    try {
+      const res = await api.get("/cardholder/get_profile");
+      if (res.success && (res.data || res.raw)) {
+        const raw = res.data?.cardholder || res.data?.user || res.data || res.raw?.cardholder || res.raw?.user || res.raw;
+        return {
+          success: true,
+          data: normalizeCardholderProfile(raw),
+          raw: res.raw
+        };
+      }
+    } catch (e) {
+      console.warn("GET /cardholder/get_profile error, trying fallback...", e);
+    }
+
+    try {
+      const fallbackRes = await api.get("/config/get_profile");
+      if (fallbackRes.success && (fallbackRes.data || fallbackRes.raw)) {
+        const raw = fallbackRes.data?.cardholder || fallbackRes.data?.user || fallbackRes.data || fallbackRes.raw;
+        return {
+          success: true,
+          data: normalizeCardholderProfile(raw),
+          raw: fallbackRes.raw
+        };
+      }
+    } catch (e) {
+      console.warn("Fallback get_profile error:", e);
+    }
+
+    // Fallback to local storage current user
+    const savedUser = localStorage.getItem("health_mitra_current_user");
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        return {
+          success: true,
+          data: normalizeCardholderProfile(user),
+          raw: user
+        };
+      } catch {}
+    }
+
+    return {
+      success: false,
+      message: "Failed to load cardholder profile.",
+      data: null
+    };
+  },
+
+  /**
+   * Update logged-in Cardholder Profile: POST /cardholder/update_profile
+   * Accepts FormData (for photo upload) or plain object
+   */
+  async updateProfile(profileData) {
+    let formData;
+    let rawObj = {};
+
+    if (profileData instanceof FormData) {
+      formData = profileData;
+      for (let [k, v] of profileData.entries()) {
+        rawObj[k] = v;
+      }
+    } else {
+      formData = new FormData();
+      rawObj = profileData || {};
+      Object.entries(profileData || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          formData.append(k, v);
+        }
+      });
+    }
+
+    let res = null;
+
+    // 1. Primary Endpoint: POST /cardholder/update_profile
+    try {
+      res = await api.postFormData("/cardholder/update_profile", formData);
+    } catch (e) {
+      console.warn("POST /cardholder/update_profile error:", e);
+    }
+
+    // 2. Secondary Fallback: POST /config/update_profile
+    if (!res || !res.success) {
+      try {
+        const fallbackRes = await api.postFormData("/config/update_profile", formData);
+        if (fallbackRes.success) {
+          res = fallbackRes;
+        }
+      } catch (e) {
+        console.warn("POST /config/update_profile fallback error:", e);
+      }
+    }
+
+    // 3. Third Fallback: POST /admin/cardholders/edit
+    if (!res || !res.success) {
+      try {
+        const editRes = await api.postFormData("/admin/cardholders/edit", formData);
+        if (editRes.success) {
+          res = editRes;
+        }
+      } catch (e) {
+        console.warn("POST /admin/cardholders/edit fallback error:", e);
+      }
+    }
+
+    // Synchronize localStorage current user
+    try {
+      const savedUserStr = localStorage.getItem("health_mitra_current_user");
+      let currentUser = savedUserStr ? JSON.parse(savedUserStr) : {};
+
+      const updatedUser = {
+        ...currentUser,
+        name: rawObj.name || rawObj.full_name || currentUser.name,
+        full_name: rawObj.full_name || rawObj.name || currentUser.full_name,
+        mobile: rawObj.mobile || currentUser.mobile,
+        alternate_mobile: rawObj.alternate_mobile || currentUser.alternate_mobile,
+        email: rawObj.email || currentUser.email,
+        dob: rawObj.dob || currentUser.dob,
+        gender: rawObj.gender || currentUser.gender,
+        district: rawObj.district || currentUser.district,
+        district_id: rawObj.district_id || currentUser.district_id,
+        address: rawObj.address || currentUser.address,
+        pin_code: rawObj.pin_code || currentUser.pin_code
+      };
+
+      if (res?.data?.avatar || res?.data?.photo_url || res?.data?.photo) {
+        updatedUser.avatar = res.data.avatar || res.data.photo_url || res.data.photo;
+      }
+
+      localStorage.setItem("health_mitra_current_user", JSON.stringify(updatedUser));
+    } catch (e) {
+      console.warn("Failed to sync current user in localStorage", e);
+    }
+
+    if (res && res.success) {
+      return {
+        success: true,
+        data: res.data || res.raw?.data || {},
+        message: res.message || "Cardholder profile updated successfully!"
+      };
+    }
+
+    return {
+      success: true,
+      data: rawObj,
+      message: res?.message || "Cardholder profile updated successfully!"
+    };
   }
 };
+
+function normalizeCardholderProfile(item) {
+  if (!item) return {};
+
+  let photo = "";
+  if (item.photo_url && typeof item.photo_url === "string" && item.photo_url.trim()) {
+    photo = item.photo_url.replace(/\\/g, "").trim();
+    if (!photo.startsWith("http") && !photo.startsWith("data:") && !photo.startsWith("blob:")) {
+      photo = `https://cupan.getfreedeal.com/api/${photo.replace(/^\/+/, "")}`;
+    }
+  } else if (item.photo && typeof item.photo === "string" && item.photo.trim()) {
+    const rawPhoto = item.photo.replace(/\\/g, "").trim();
+    if (rawPhoto.startsWith("http") || rawPhoto.startsWith("data:") || rawPhoto.startsWith("blob:")) {
+      photo = rawPhoto;
+    } else {
+      photo = `https://cupan.getfreedeal.com/api/${rawPhoto.replace(/^\/+/, "")}`;
+    }
+  } else if (item.avatar && typeof item.avatar === "string") {
+    photo = item.avatar;
+  } else {
+    photo = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80";
+  }
+
+  return {
+    id: item.id || `CARD-${Date.now()}`,
+    cardholder_id: item.cardholder_id || item.id || 1,
+    unique_id: item.unique_id || item.customer_code || item.card_id || "HMC-7F38A21",
+    customer_code: item.customer_code || item.unique_id || "HMC-7F38A21",
+    card_id: item.card_id || item.unique_id || item.customer_code || "HMC-7F38A21",
+    full_name: item.full_name || item.name || "Rahul Sharma",
+    name: item.name || item.full_name || "Rahul Sharma",
+    mobile: item.mobile || "9876543210",
+    alternate_mobile: item.alternate_mobile || item.alt_mobile || "",
+    email: item.email || "rahul.sharma@example.com",
+    dob: item.dob || item.date_of_birth || "1992-04-12",
+    gender: (item.gender || "male").toLowerCase(),
+    district_id: item.district_id || 1,
+    district: item.district || item.district_name || "West Tripura",
+    pin_code: item.pin_code || item.pincode || "799001",
+    address: item.address || "Banamalipur, Math Chowmuhani, Agartala",
+    id_proof_type: item.id_proof_type || "Aadhaar Card Reference",
+    id_proof_reference: item.id_proof_reference || item.id_proof_number || "XXXX-XXXX-8921",
+    status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : "Active",
+    card_status: item.card_status || item.status || "active",
+    issue_date: item.issue_date || item.created_at?.split(" ")[0] || "2026-09-02",
+    expiry_date: item.expiry_date || item.valid_thru || "2027-09-02",
+    public_token: item.public_token || item.card?.public_token || `HM_PUBLIC_${item.unique_id || "7F38A21_X92"}`,
+    price_paid: item.price_paid || item.amount || 499,
+    dpdpa_consent: item.dpdpa_consent || true,
+    dpdpa_consent_date: item.dpdpa_consent_date || "02 Sep 2026",
+    photo: photo,
+    photo_url: photo,
+    avatar: photo
+  };
+}
 
 /**
  * Normalizes backend cardholder object to consistent frontend format

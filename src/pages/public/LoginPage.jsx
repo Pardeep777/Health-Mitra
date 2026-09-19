@@ -116,6 +116,10 @@ export function LoginPage() {
                 ? "Partner Mobile / Registered Email *"
                 : selectedRole === "admin"
                 ? "Admin Email / Username *"
+                : selectedRole === "agent"
+                ? "Agent Mobile / Agent Code / Email *"
+                : selectedRole === "cardholder"
+                ? "Member Mobile / Unique Card ID / Email *"
                 : "User ID / Mobile / Email *"
             }
             type="text"
@@ -125,6 +129,10 @@ export function LoginPage() {
                 ? "e.g. 9436145001 or mitrapharmacy@healthmitra.demo"
                 : selectedRole === "admin"
                 ? "e.g. admin@gmail.com"
+                : selectedRole === "agent"
+                ? "e.g. 9879879787 or HMA839210"
+                : selectedRole === "cardholder"
+                ? "e.g. 9876543210 or HMC-7F38A21"
                 : "e.g. user@healthmitra.demo"
             }
             value={email}
@@ -134,14 +142,16 @@ export function LoginPage() {
 
           <Input
             label={
-              selectedRole === "partner"
-                ? "6-Digit OTP / Access PIN *"
+              selectedRole === "partner" || selectedRole === "cardholder"
+                ? "6-Digit OTP / Access PIN / Password *"
                 : "Password / Access PIN *"
             }
             type="password"
             icon={Lock}
             placeholder={
-              selectedRole === "partner"
+              selectedRole === "partner" || selectedRole === "cardholder"
+                ? "e.g. 123456"
+                : selectedRole === "agent"
                 ? "e.g. 123456"
                 : "Enter your password"
             }
@@ -151,6 +161,48 @@ export function LoginPage() {
           />
 
           {/* Quick Demo Credentials Helper */}
+          {selectedRole === "cardholder" && (
+            <div className="bg-blue-50/90 border border-blue-200/90 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
+              <div className="text-navy-900 leading-tight">
+                <span className="font-bold text-blue-800">Cardholder Live Login:</span>
+                <span className="text-slate-600 block sm:inline sm:ml-1">
+                  Mobile: <b>9876543210</b> • PIN: <b>123456</b> (Rahul Sharma)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("9876543210");
+                  setPassword("123456");
+                }}
+                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
+              >
+                Auto Fill
+              </button>
+            </div>
+          )}
+
+          {selectedRole === "agent" && (
+            <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
+              <div className="text-navy-900 leading-tight">
+                <span className="font-bold text-emerald-800">Agent Live Login Demo:</span>
+                <span className="text-slate-600 block sm:inline sm:ml-1">
+                  Mobile: <b>9879879787</b> • Pass: <b>123456</b> (Agent Shyam)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("9879879787");
+                  setPassword("123456");
+                }}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
+              >
+                Auto Fill
+              </button>
+            </div>
+          )}
+
           {selectedRole === "partner" && (
             <div className="bg-orange-50/80 border border-orange-200/80 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
               <div className="text-navy-900 leading-tight">
@@ -163,7 +215,7 @@ export function LoginPage() {
                   setEmail("9436145001");
                   setPassword("123456");
                 }}
-                className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs"
+                className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
               >
                 Auto Fill
               </button>
@@ -182,7 +234,7 @@ export function LoginPage() {
                   setEmail("admin@gmail.com");
                   setPassword("admin");
                 }}
-                className="px-2.5 py-1 bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs"
+                className="px-2.5 py-1 bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
               >
                 Auto Fill
               </button>
