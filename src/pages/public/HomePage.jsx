@@ -132,35 +132,36 @@ export function HomePage() {
   ];
 
   return (
-    <div className="space-y-16 sm:space-y-24 overflow-hidden">
+    <div className="overflow-hidden">
       {/* 1. Dynamic Interactive Hero Slider */}
       <HeroSlider />
 
       {/* 2. Official Statistics Strip */}
-      <section className="bg-navy-950 text-white py-12 border-y border-navy-800 relative">
+      <section className="bg-navy-950 text-white py-4 sm:py-5 border-b border-navy-800 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-navy-800">
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-extrabold text-brand-400">100+</p>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium">Partner Healthcare Outlets</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center divide-y md:divide-y-0 md:divide-x divide-navy-800/80">
+            <div className="py-1">
+              <p className="text-xl sm:text-2xl font-bold text-brand-400">100+</p>
+              <p className="text-[11px] sm:text-xs text-slate-300 font-medium">Partner Healthcare Outlets</p>
             </div>
-            <div className="space-y-1 pt-4 md:pt-0">
-              <p className="text-3xl sm:text-4xl font-extrabold text-white">5,00,000</p>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium">Year 1 Target Members</p>
+            <div className="py-1 pt-2 md:pt-1">
+              <p className="text-xl sm:text-2xl font-bold text-white">5,00,000</p>
+              <p className="text-[11px] sm:text-xs text-slate-300 font-medium">Year 1 Target Members</p>
             </div>
-            <div className="space-y-1 pt-4 md:pt-0">
-              <p className="text-3xl sm:text-4xl font-extrabold text-brand-400">₹49</p>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium">Annual Card Price</p>
+            <div className="py-1 pt-2 md:pt-1">
+              <p className="text-xl sm:text-2xl font-bold text-brand-400">₹49</p>
+              <p className="text-[11px] sm:text-xs text-slate-300 font-medium">Annual Card Price</p>
             </div>
-            <div className="space-y-1 pt-4 md:pt-0">
-              <p className="text-3xl sm:text-4xl font-extrabold text-emerald-400">Up to 20%</p>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium">Discount at Outlets</p>
+            <div className="py-1 pt-2 md:pt-1">
+              <p className="text-xl sm:text-2xl font-bold text-emerald-400">Up to 20%</p>
+              <p className="text-[11px] sm:text-xs text-slate-300 font-medium">Discount at Outlets</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. 4-Step How It Works Section */}
+      <div className="space-y-16 sm:space-y-24 py-16 sm:py-24">
+        {/* 3. 4-Step How It Works Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <span className="text-xs font-extrabold uppercase tracking-wider text-brand-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
@@ -371,6 +372,7 @@ export function HomePage() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }
