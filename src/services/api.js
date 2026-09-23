@@ -10,24 +10,26 @@ export const DEFAULT_ADMIN_TOKEN =
   "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MywibmFtZSI6ImFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJtb2JpbGUiOiI4ODg4ODg4ODg4Iiwicm9sZV9pZCI6MSwicm9sZV9uYW1lIjoiU3VwZXIgQWRtaW4iLCJyb2xlX3NsdWciOiJzdXBlcl9hZG1pbiIsImlhdCI6MTc4OTU1ODYzMCwiZXhwIjoxNzkwMTYzNDMwfQ.eInXvct0bsnaDlBsiHi6MC4r-1RihYy22OKrd_dygSE";
 
 export function getAuthToken() {
-  const token = localStorage.getItem("health_mitra_token");
-  if (token && token.trim()) return token.trim();
+  if (typeof window === "undefined" || !window.localStorage) return "";
+  try {
+    const token = localStorage.getItem("health_mitra_token");
+    if (token && token.trim()) return token.trim();
 
-  const user = localStorage.getItem("health_mitra_current_user");
-  if (user) {
-    try {
+    const user = localStorage.getItem("health_mitra_current_user");
+    if (user) {
       const parsed = JSON.parse(user);
       if (parsed?.token && parsed.token.trim()) {
         localStorage.setItem("health_mitra_token", parsed.token.trim());
         return parsed.token.trim();
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
   return "";
 }
 
 export function setAuthToken(token) {
+  if (typeof window === "undefined" || !window.localStorage) return;
   if (token && typeof token === "string" && token.trim()) {
     localStorage.setItem("health_mitra_token", token.trim());
   } else {
@@ -61,8 +63,10 @@ async function request(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  // Attach token in standard Authorization header
-  if (token && !headers.Authorization && !headers.authorization) {
+  // Do not attach Authorization header to public endpoints (/content/*)
+  // because the server's CORS preflight does not permit Authorization header on public endpoints.
+  const isPublicEndpoint = cleanEndpoint.startsWith("/content/") || options.skipAuth;
+  if (token && !isPublicEndpoint && !headers.Authorization && !headers.authorization) {
     headers.Authorization = `Bearer ${token}`;
   }
 

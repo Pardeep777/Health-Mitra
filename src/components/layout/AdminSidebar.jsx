@@ -16,7 +16,8 @@ import {
   X,
   Sparkles,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Layers
 } from "lucide-react";
 import logoImg from "../../assets/logo.png";
 import { useAuth } from "../../context/AuthContext";
@@ -49,6 +50,7 @@ export function AdminSidebar({ isOpen, onClose }) {
     {
       title: "Content & Compliance",
       items: [
+        { label: "Hero Banners", path: "/admin/content?tab=banners", icon: Layers },
         { label: "Website CMS", path: "/admin/content", icon: FileText },
         { label: "Audit Logs", path: "/admin/audit-logs", icon: ShieldCheck },
         { label: "Platform Settings", path: "/admin/settings", icon: Settings }
@@ -58,6 +60,13 @@ export function AdminSidebar({ isOpen, onClose }) {
 
   const isActive = (item) => {
     if (item.exact) return location.pathname === item.path;
+    if (item.path.includes("?tab=")) {
+      const currentFull = location.pathname + location.search;
+      return currentFull === item.path;
+    }
+    if (location.pathname === "/admin/content" && location.search.includes("tab=banners") && item.path === "/admin/content") {
+      return false;
+    }
     return location.pathname.startsWith(item.path);
   };
 
