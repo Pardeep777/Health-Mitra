@@ -1,4 +1,5 @@
 import { api, setAuthToken, getAuthToken } from "./api";
+import { districtService } from "./districtService";
 
 export const DEMO_USERS = {
   admin: {
@@ -355,7 +356,47 @@ export const authService = {
       return userObj;
     }
 
-    // 5. Other portal roles (District Desk)
+    // 5. Live API Authentication for District Coordinator Portal (/district/login)
+    if (role === "district") {
+      let mobileToUse = cleanEmail.replace(/[^0-9+]/g, "");
+      if (!mobileToUse) {
+        mobileToUse = cleanEmail;
+      }
+
+      const res = await districtService.login({ mobile: mobileToUse });
+      const distData = res.data || {};
+      const token = res.token || "";
+
+      if (token) {
+        setAuthToken(token);
+      }
+
+      const userObj = {
+        id: `USR-DST-${distData.district_id || 1}`,
+        district_id: distData.district_id || 1,
+        district: distData.district_name || "West Tripura",
+        district_name: distData.district_name || "West Tripura",
+        name: distData.coordinator_name || "Sudip Chakraborty (Lead)",
+        coordinator_name: distData.coordinator_name || "Sudip Chakraborty (Lead)",
+        mobile: distData.coordinator_phone || mobileToUse,
+        coordinator_phone: distData.coordinator_phone || mobileToUse,
+        email: cleanEmail.includes("@") ? cleanEmail : `${(distData.district_name || "district").toLowerCase().replace(/\s+/g, "")}@healthmitra.demo`,
+        headquarters: distData.headquarters || "Agartala",
+        state: distData.state || "Tripura",
+        role: "district",
+        role_id: distData.role_id || 3,
+        role_name: "District Coordinator",
+        role_slug: "district_coordinator",
+        status: distData.status || "active",
+        token: token,
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+      };
+
+      localStorage.setItem("health_mitra_current_user", JSON.stringify(userObj));
+      return userObj;
+    }
+
+    // 6. Other portal roles fallback
     await new Promise((resolve) => setTimeout(resolve, 200));
     const baseUser = DEMO_USERS[role] || DEMO_USERS.partner;
     const token = `HM_AUTH_TOKEN_${role.toUpperCase()}_${Date.now()}`;

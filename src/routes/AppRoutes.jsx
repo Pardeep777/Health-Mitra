@@ -68,6 +68,7 @@ import { DistrictDashboardPage } from "../pages/district/DistrictDashboardPage";
 import { DistrictAgentsPage } from "../pages/district/DistrictAgentsPage";
 import { DistrictPartnersPage } from "../pages/district/DistrictPartnersPage";
 import { DistrictCardsPage } from "../pages/district/DistrictCardsPage";
+import { DistrictProfilePage } from "../pages/district/DistrictProfilePage";
 
 export function AppRoutes() {
   return (
@@ -146,6 +147,7 @@ export function AppRoutes() {
         <Route path="agents" element={<DistrictAgentsPage />} />
         <Route path="partners" element={<DistrictPartnersPage />} />
         <Route path="cards" element={<DistrictCardsPage />} />
+        <Route path="profile" element={<DistrictProfilePage />} />
       </Route>
 
       {/* Catch-all */}

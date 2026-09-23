@@ -95,11 +95,10 @@ export function LoginPage() {
                 key={r.id}
                 type="button"
                 onClick={() => handleRoleSelect(r)}
-                className={`py-2 px-1.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 transition ${
-                  isSelected
+                className={`py-2 px-1.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 transition ${isSelected
                     ? "bg-white text-navy-900 shadow-sm font-bold border border-slate-200/80"
                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
-                }`}
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${isSelected ? "text-brand-500" : "text-slate-400"}`} />
                 <span className="text-[10px] sm:text-xs truncate">{r.label}</span>
@@ -115,12 +114,14 @@ export function LoginPage() {
               selectedRole === "partner"
                 ? "Partner Mobile / Registered Email *"
                 : selectedRole === "admin"
-                ? "Admin Email / Username *"
-                : selectedRole === "agent"
-                ? "Agent Mobile / Agent Code / Email *"
-                : selectedRole === "cardholder"
-                ? "Member Mobile / Unique Card ID / Email *"
-                : "User ID / Mobile / Email *"
+                  ? "Admin Email / Username *"
+                  : selectedRole === "agent"
+                    ? "Agent Mobile / Agent Code / Email *"
+                    : selectedRole === "cardholder"
+                      ? "Member Mobile / Unique Card ID / Email *"
+                      : selectedRole === "district"
+                        ? "Coordinator Registered Mobile Number *"
+                        : "User ID / Mobile / Email *"
             }
             type="text"
             icon={Mail}
@@ -128,12 +129,14 @@ export function LoginPage() {
               selectedRole === "partner"
                 ? "e.g. 9436145001 or mitrapharmacy@healthmitra.demo"
                 : selectedRole === "admin"
-                ? "e.g. admin@gmail.com"
-                : selectedRole === "agent"
-                ? "e.g. 9879879787 or HMA839210"
-                : selectedRole === "cardholder"
-                ? "e.g. 9876543210 or HMC-7F38A21"
-                : "e.g. user@healthmitra.demo"
+                  ? "e.g. admin@gmail.com"
+                  : selectedRole === "agent"
+                    ? "e.g. 9879879787 or HMA839210"
+                    : selectedRole === "cardholder"
+                      ? "e.g. 9876543210 or HMC-7F38A21"
+                      : selectedRole === "district"
+                        ? "e.g. 9436128111"
+                        : "e.g. user@healthmitra.demo"
             }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -152,8 +155,8 @@ export function LoginPage() {
               selectedRole === "partner" || selectedRole === "cardholder"
                 ? "e.g. 123456"
                 : selectedRole === "agent"
-                ? "e.g. 123456"
-                : "Enter your password"
+                  ? "e.g. 123456"
+                  : "Enter your password"
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -216,6 +219,27 @@ export function LoginPage() {
                   setPassword("123456");
                 }}
                 className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
+              >
+                Auto Fill
+              </button>
+            </div>
+          )}
+
+          {selectedRole === "district" && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-3 text-xs flex items-center justify-between gap-2">
+              <div className="text-navy-900 leading-tight">
+                <span className="font-bold text-indigo-800">District Demo:</span>
+                <span className="text-slate-600 block sm:inline sm:ml-1">
+                  Mobile: <b>9436128111</b> • Coordinator: <b>Sudip Chakraborty</b>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("9436128111");
+                  setPassword("123456");
+                }}
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[11px] shrink-0 transition shadow-2xs cursor-pointer"
               >
                 Auto Fill
               </button>

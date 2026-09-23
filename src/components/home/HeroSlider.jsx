@@ -449,8 +449,8 @@ export function HeroSlider() {
                 key={idx}
                 onClick={() => setCurrentSlide(idx)}
                 className={`transition-all duration-300 rounded-full cursor-pointer ${active
-                    ? "w-7 h-2 bg-brand-500 shadow-md shadow-brand-500/50"
-                    : "w-2 h-2 bg-white/60 hover:bg-white"
+                  ? "w-7 h-2 bg-brand-500 shadow-md shadow-brand-500/50"
+                  : "w-2 h-2 bg-white/60 hover:bg-white"
                   }`}
                 aria-label={`Go to slide ${idx + 1} of ${slides.length}`}
               />

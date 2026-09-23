@@ -105,18 +105,16 @@ export function UserProfileDropdown({ align = "right", compact = false }) {
         )}
 
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform duration-200 ${
-            open ? "rotate-180 text-brand-500" : ""
-          }`}
+          className={`w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform duration-200 ${open ? "rotate-180 text-brand-500" : ""
+            }`}
         />
       </button>
 
       {/* Dropdown Menu */}
       {open && (
         <div
-          className={`absolute ${
-            align === "right" ? "right-0" : "left-0"
-          } mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-2 z-50 animate-fadeIn divide-y divide-slate-100 overflow-hidden`}
+          className={`absolute ${align === "right" ? "right-0" : "left-0"
+            } mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-2 z-50 animate-fadeIn divide-y divide-slate-100 overflow-hidden`}
         >
           {/* Header Info */}
           <div className="p-4 bg-gradient-to-br from-slate-50 to-orange-50/30">

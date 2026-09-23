@@ -60,11 +60,10 @@ export function DistrictLayout() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
-                  active
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${active
                     ? "bg-brand-500 text-white font-bold shadow-xs"
                     : "text-slate-600 hover:text-navy-900 hover:bg-slate-100"
-                }`}
+                  }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{link.label}</span>
